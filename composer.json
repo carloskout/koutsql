@@ -1,0 +1,23 @@
+{
+    "name": "kout/datab",
+    "description": "DataB é uma library que facilita a criação e execução de instruções SQL.",
+    "require-dev": {
+        "phpunit/phpunit": "^9.5"
+    },
+    "license": "MIT",
+    "autoload": {
+        "psr-4": {
+            "Kout\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "Kout\\Tests\\": "tests/"
+    },
+    "authors": [
+        {
+            "name": "Carlos Coutinho",
+            "email": "coutinhoco@outlook.com"
+        }
+    ],
+    "minimum-stability": "stable"
+}
