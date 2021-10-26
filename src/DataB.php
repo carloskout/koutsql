@@ -805,7 +805,7 @@ final class DataB
      * @param array $data
      * @return ResultSet
      */
-    public static function statement(string $sql, array $data = null): ResultSet
+    public static function nativeSQL(string $sql, array $data = null): ResultSet
     {
         $DataB = new DataB();
         $DataB->sql = $sql;
