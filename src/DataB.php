@@ -555,25 +555,15 @@ final class DataB
      * 
      * @return DataB
      */
-    public function limit(int $number): DataB
+    public function limit(int $limit, int $offset = 0): DataB
     {
-        $this->sql .= " limit $number";
-        return $this;
-    }
+        $this->sql .= " limit";
 
-    /**
-     * Adiciona a cláusula 'limit x, y' à instrução SQL.
-     *
-     * @param integer $offset - Especifica a partir de qual
-     * registro será retornado pela query.
-     * 
-     * @param integer $limit - Especifica a quantidade de registros
-     * a serem retornados pela query
-     * @return DataB
-     */
-    public function offset(int $offset, int $limit): DataB
-    {
-        $this->sql .= " limit ${offset}, ${limit}";
+        if($offset > 0) {
+            $this->sql .= " ${offset},";
+        }
+
+        $this->sql .= " $limit";
         return $this;
     }
 
