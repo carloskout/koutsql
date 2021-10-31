@@ -66,7 +66,7 @@ final class DataB
      * 
      * @return DataB
      */
-    public static function selectDistinct(...$fields): DataB
+    public static function distinct(...$fields): DataB
     {
         $sql = "select distinct " . self::listFields(self::varArgs($fields));
         return new DataB($sql);
