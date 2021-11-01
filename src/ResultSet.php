@@ -51,17 +51,15 @@ class ResultSet
     public function getFirst(): ?array
     {
         return $this->statement->fetch(
-            \PDO::FETCH_ASSOC,
-            \PDO::FETCH_ORI_FIRST
+            \PDO::FETCH_ASSOC
         );
     }
 
     public function getLast(): ?array
     {
-        return $this->statement->fetch(
-            \PDO::FETCH_ASSOC,
-            \PDO::FETCH_ORI_LAST
-        );
+        $rs = $this->statement->fetchAll(\PDO::FETCH_ASSOC);
+        return $rs[count($rs) - 1];
+        
     }
 
     public function getSingleResult()
