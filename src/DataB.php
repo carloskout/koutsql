@@ -201,6 +201,14 @@ final class DataB
         return new DataB($sql);
     }
 
+    public function ct(string $field) {
+        if(strpos('select', $this->sql) !== false) {
+            $this->sql .= " count(${field})";
+        } else {
+            $this->sql = "select count(${field})";
+        }
+    }
+
     /**
      * Adiciona a função agregação sum() à instrução SQL.
      *
@@ -309,6 +317,10 @@ final class DataB
             $this->sql .= " ${name}";
         }
         return $this;
+    }
+
+    public function alias(string $alias) {
+        $this->sql .= " as ${alias}";
     }
 
     /**
@@ -1082,8 +1094,8 @@ final class DataB
     private static function checkConnection()
     {
         if (!self::$conn) {
-            throw new DataBException('Nenhuma conexão com o banco de dados foi definida.
-            Use o método DataB::setPDO para definir uma conexão com o banco de dados.');
+            throw new DataBException('Conexão com banco de dados inválida!
+            Use o método DataB::setPDO para definir uma conexão válida.');
         }
     }
 
