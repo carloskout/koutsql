@@ -28,4 +28,23 @@ class Util
         $len = strlen($search);
         return ($len > 0) ? substr($content, -$len) == $search : true;
     }
+
+    /**
+     * Este método adiciona o caracter underline entre cada palavra
+     * presente em $subject.
+     * 
+     * Ex: fooBar - FOO_BAR
+     * 
+     * @param string|array $subject
+     * @return string|array
+     */
+    public static function underlineConverter($subject) {
+        $subject =  preg_replace_callback('/(?<=[a-z]|[0-9])[A-Z]/', function($matchs) {
+            return '_' . strtolower($matchs[0]);
+        }, $subject);
+    
+        if(is_array($subject))
+            return array_map('strtoupper', $subject);
+        return strtoupper($subject);
+    }
 }

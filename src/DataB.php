@@ -54,7 +54,7 @@ final class DataB
      */
     public static function select(...$fields): DataB
     {
-        $sql = "select " . self::listFields(self::varArgs($fields));
+        $sql = "SELECT " . self::listFields(self::varArgs($fields));
         return new DataB($sql);
     }
 
@@ -68,7 +68,7 @@ final class DataB
      */
     public static function distinct(...$fields): DataB
     {
-        $sql = "select distinct " . self::listFields(self::varArgs($fields));
+        $sql = "SELECT DISTINCT " . self::listFields(self::varArgs($fields));
         return new DataB($sql);
     }
 
@@ -81,7 +81,7 @@ final class DataB
      */
     public static function insert(...$fields): DataB
     {
-        $sql = 'insert into';
+        $sql = 'INSERT INTO';
         return new DataB($sql, $fields);
     }
 
@@ -94,7 +94,7 @@ final class DataB
      */
     public static function update(...$fields): DataB
     {
-        $sql = "update";
+        $sql = "UPDATE";
         return new DataB($sql, $fields);
     }
 
@@ -111,7 +111,7 @@ final class DataB
     {
         $arg = self::varArgs($values);
 
-        $this->sql .= " set";
+        $this->sql .= " SET";
 
         //a quantidade de campos a serem atualizados
         //devem bater com a quantidade de valores
@@ -164,7 +164,7 @@ final class DataB
      */
     public static function delete(string $tableName): DataB
     {
-        $sql = "delete from ${tableName}";
+        $sql = "DELETE FROM ${tableName}";
         return new DataB($sql);
     }
 
@@ -174,9 +174,14 @@ final class DataB
      * @param string $field
      * @return DataB
      */
-    public static function min(string $field): DataB {
-        $sql = "select min(${field})";
-        return new DataB($sql);
+    public function min(string $field): DataB {
+        if(isset($this)) {
+            $this->sql .= ", MIN(${field})";
+            return $this;
+        } else {
+            $sql = "SELECT MIN(${field})";
+            return new DataB($sql);
+        }
     }
 
     /**
@@ -185,27 +190,31 @@ final class DataB
      * @param string $field
      * @return DataB
      */
-    public static function max(string $field): DataB {
-        $sql = "select max(${field})";
-        return new DataB($sql);
+    public function max(string $field): DataB {
+        if(isset($this)) {
+            $this->sql .= ", MAX(${field})";
+            return $this;
+        } else {
+            $sql = "SELECT MAX(${field})";
+            return new DataB($sql);
+        }
     }
 
     /**
      * Adiciona a função agregação count() à instrução SQL.
-     *
+     * DataB::count('*')
+     * DataB::select('*')->count('*')
      * @param string $field
      * @return DataB
      */
-    public static function count(string $field): DataB {
-        $sql = "select count(${field})";
-        return new DataB($sql);
-    }
-
-    public function ct(string $field) {
-        if(strpos('select', $this->sql) !== false) {
-            $this->sql .= " count(${field})";
+    public function count(string $field): DataB
+    {
+        if(isset($this)) {
+            $this->sql .= ", COUNT(${field})";
+            return $this;
         } else {
-            $this->sql = "select count(${field})";
+            $sql = "SELECT COUNT(${field})";
+            return new DataB($sql);
         }
     }
 
@@ -215,9 +224,14 @@ final class DataB
      * @param string $field
      * @return DataB
      */
-    public static function sum(string $field): DataB {
-        $sql = "select sum(${field})";
-        return new DataB($sql);
+    public function sum(string $field): DataB {
+        if(isset($this)) {
+            $this->sql .= ", SUM(${field})";
+            return $this;
+        } else {
+            $sql = "SELECT SUM(${field})";
+            return new DataB($sql);
+        }
     }
 
     /**
@@ -226,23 +240,14 @@ final class DataB
      * @param string $field
      * @return DataB
      */
-    public static function avg(string $field): DataB {
-        $sql = "select avg(${field})";
-        return new DataB($sql);
-    }
-
-    /**
-     * Adiciona qualquer função do banco de dados
-     * à instrução SQL.
-     * 
-     * @param string $fnName - Nome da função
-     * @param array ...$fields - Parametros para a função
-     * @return DataB
-     */
-    public static function fn(string $fnName, ...$fields): DataB {
-        $fields = self::varArgs($fields);
-        $sql = "select $fnName(" . self::listFields($fields) . ')';
-        return new DataB($sql);
+    public function avg(string $field): DataB {
+        if(isset($this)) {
+            $this->sql .= ", AVG(${field})";
+            return $this;
+        } else {
+            $sql = "SELECT AVG(${field})";
+            return new DataB($sql);
+        }
     }
 
     /**
@@ -295,7 +300,7 @@ final class DataB
             if (!$this->hasValues) {
                 $this->hasValues = true;
                 $this->sql .= " (" . self::listFields($this->fields) . ")";
-                $this->sql .= " values (" . $this->listValues($arg) . ")";
+                $this->sql .= " VALUES (" . $this->listValues($arg) . ")";
             } else {
                 $this->sql .= ", (" . $this->listValues($arg) . ")";
             }
@@ -309,18 +314,24 @@ final class DataB
      * @param string $name - Nome da tabela
      * @return DataB
      */
-    public function table(string $name): DataB
+    public function table(...$name): DataB
     {
-        if(strpos($this->sql, 'select') === 0) {
-            $this->sql .= " from ${name}";
+        $name = implode(', ', self::varArgs($name));
+        if(Util::startsWith('SELECT', $this->sql)) {
+            $this->sql .= " FROM ${name}";
         } else {
             $this->sql .= " ${name}";
         }
         return $this;
     }
 
-    public function alias(string $alias) {
-        $this->sql .= " as ${alias}";
+    public function alias(string $alias): DataB
+    {
+        if(str_word_count($alias) > 1) {
+            $alias = "'${alias}'";
+        }
+        $this->sql .= " AS ${alias}";
+        return $this;
     }
 
     /**
@@ -333,7 +344,7 @@ final class DataB
      */
     public function cond(string $field = null): DataB
     {
-        $this->sql .= " where";
+        $this->sql .= " WHERE";
 
         if ($field) {
             $this->sql .= " ${field}";
@@ -342,16 +353,14 @@ final class DataB
     }
 
     /**
-     * Adiciona um campo à instrução SQL. Usado geralmente
-     * dentro de expressões.
+     * Usado para criar subexpressoes.
      *
      * @param string $name - Nome do campo
      * @return DataB
      */
-    public function field(string $name): DataB
+    public static function column(string $name): DataB
     {
-        $this->sql .= " ${name}";
-        return $this;
+        return new DataB(" ${name}");
     }
 
     /**
@@ -362,9 +371,21 @@ final class DataB
      * por parâmetro, então será processado como uma subquery
      * @return DataB
      */
-    public function eq($value = null): DataB
+    public function eqValue($value = null): DataB
     {
         return $this->addRelationalOperator($value, '=');
+    }
+
+    /**
+     * Use este método para fazer comparação entre campos
+     * de tabelas.
+     *
+     * @param string $column - Campo a ser comparado
+     * @return DataB
+     */
+    public function eqColumn(string $column): DataB
+    {
+        return $this->addRelationalOperator('*' . $column, '=');
     }
 
     /**
@@ -375,9 +396,21 @@ final class DataB
      * por parâmetro, então será processado como uma subquery
      * @return DataB
      */
-    public function ne($value = null): DataB
+    public function neValue($value = null): DataB
     {
         return $this->addRelationalOperator($value, '!=');
+    }
+
+    /**
+     * Use este método para fazer comparação entre campos
+     * de tabelas.
+     *
+     * @param string $column - Campo a ser comparado
+     * @return DataB
+     */
+    public function neColumn(string $column): DataB
+    {
+        return $this->addRelationalOperator('*' . $column, '!=');
     }
 
     /**
@@ -388,9 +421,21 @@ final class DataB
      * por parâmetro, então será processado como uma subquery
      * @return DataB
      */
-    public function lt($value = null): DataB
+    public function ltValue($value = null): DataB
     {
         return $this->addRelationalOperator($value, '<');
+    }
+
+    /**
+     * Use este método para fazer comparação entre campos
+     * de tabelas.
+     *
+     * @param string $column - Campo a ser comparado
+     * @return DataB
+     */
+    public function ltColumn(string $column): DataB
+    {
+        return $this->addRelationalOperator('*' . $column, '<');
     }
 
     /**
@@ -401,9 +446,21 @@ final class DataB
      * por parâmetro, então será processado como uma subquery
      * @return DataB
      */
-    public function gt($value = null): DataB
+    public function gtValue($value = null): DataB
     {
         return $this->addRelationalOperator($value, '>');
+    }
+
+    /**
+     * Use este método para fazer comparação entre campos
+     * de tabelas.
+     *
+     * @param string $column - Campo a ser comparado
+     * @return DataB
+     */
+    public function gtColumn(string $column): DataB
+    {
+        return $this->addRelationalOperator('*' . $column, '>');
     }
 
     /**
@@ -414,9 +471,21 @@ final class DataB
      * por parâmetro, então será processado como uma subquery
      * @return DataB
      */
-    public function le($value = null): DataB
+    public function leValue($value = null): DataB
     {
         return $this->addRelationalOperator($value, '<=');
+    }
+
+    /**
+     * Use este método para fazer comparação entre campos
+     * de tabelas.
+     *
+     * @param string $column - Campo a ser comparado
+     * @return DataB
+     */
+    public function leColumn(string $column): DataB
+    {
+        return $this->addRelationalOperator('*' . $column, '<=');
     }
 
     /**
@@ -427,9 +496,21 @@ final class DataB
      * por parâmetro, então será processado como uma subquery
      * @return DataB
      */
-    public function ge($value = null): DataB
+    public function geValue($value = null): DataB
     {
         return $this->addRelationalOperator($value, '>=');
+    }
+
+    /**
+     * Use este método para fazer comparação entre campos
+     * de tabelas.
+     *
+     * @param string $column - Campo a ser comparado
+     * @return DataB
+     */
+    public function geColumn(string $column): DataB
+    {
+        return $this->addRelationalOperator('*' . $column, '>=');
     }
 
     /**
@@ -440,7 +521,7 @@ final class DataB
      * por parâmetro, então será processado como uma expressao
      * @return DataB
      */
-    public function and($value): DataB
+    public function and($value = null): DataB
     {
         return $this->addLogicalOperator($value, 'and');
     }
@@ -453,7 +534,7 @@ final class DataB
      * por parâmetro, então será processado como uma expressao
      * @return DataB
      */
-    public function or($value): DataB
+    public function or($value = null): DataB
     {
         return $this->addLogicalOperator($value, 'or');
     }
@@ -545,7 +626,7 @@ final class DataB
      */
     public function isNull(): DataB
     {
-        $this->sql .= " is null";
+        $this->sql .= " IS NULL";
         return $this;
     }
 
@@ -555,7 +636,7 @@ final class DataB
      */
     public function isNotNull(): DataB
     {
-        $this->sql .= " is not null";
+        $this->sql .= " IS NOT NULL";
         return $this;
     }
 
@@ -569,7 +650,7 @@ final class DataB
      */
     public function limit(int $limit, int $offset = 0): DataB
     {
-        $this->sql .= " limit";
+        $this->sql .= " LIMIT";
 
         if($offset > 0) {
             $this->sql .= " ${offset},";
@@ -587,7 +668,7 @@ final class DataB
      */
     public function orderByAsc(...$fields): DataB
     {
-        return $this->_orderBy($fields, 'asc');
+        return $this->_orderBy($fields, 'ASC');
     }
 
     /**
@@ -598,7 +679,7 @@ final class DataB
      */
     public function orderByDesc(...$fields): DataB
     {
-        return $this->_orderBy($fields, 'desc');
+        return $this->_orderBy($fields, 'DESC');
     }
 
     /**
@@ -624,7 +705,7 @@ final class DataB
      */
     public function notExists($callback): DataB
     {
-        return $this->_exists($callback, 'not');
+        return $this->_exists($callback, 'NOT');
     }
 
     /**
@@ -636,7 +717,7 @@ final class DataB
      */
     public function innerJoin(string $tableName): DataB
     {
-        $this->sql .= " inner join ${tableName}";
+        $this->sql .= " INNER JOIN ${tableName}";
         return $this;
     }
 
@@ -649,7 +730,7 @@ final class DataB
      */
     public function leftJoin(string $tableName)
     {
-        $this->sql .= " left join ${tableName}";
+        $this->sql .= " LEFT JOIN ${tableName}";
         return $this;
     }
 
@@ -662,7 +743,7 @@ final class DataB
      */
     public function rightJoin(string $tableName)
     {
-        $this->sql .= " right join ${tableName}";
+        $this->sql .= " RIGHT JOIN ${tableName}";
         return $this;
     }
 
@@ -678,7 +759,7 @@ final class DataB
      */
     public function crossJoin(string $tableName): DataB
     {
-        $this->sql .= " cross join ${tableName}";
+        $this->sql .= " CROSS JOIN ${tableName}";
         return $this;
     }
 
@@ -696,7 +777,7 @@ final class DataB
      */
     public function on(string $field): DataB
     {
-        $this->sql .= " on ${field}";
+        $this->sql .= " ON ${field}";
         return $this;
     }
 
@@ -712,7 +793,7 @@ final class DataB
      */
     public function using(string $field): DataB
     {
-        $this->sql .= " using(${field})";
+        $this->sql .= " USING(${field})";
         return $this;
     }
 
@@ -726,7 +807,7 @@ final class DataB
      */
     public function groupBy(...$fields): DataB
     {
-        $this->sql .= " group by " . self::listFields(self::varArgs($fields));
+        $this->sql .= " GROUP BY " . self::listFields(self::varArgs($fields));
         return $this;
     }
 
@@ -740,8 +821,8 @@ final class DataB
      */
     public function groupByWithRollup(...$fields): DataB
     {
-        $this->sql .= " group by " . self::listFields(self::varArgs($fields));
-        $this->sql .= " with rollup";
+        $this->sql .= " GROUP BY " . self::listFields(self::varArgs($fields));
+        $this->sql .= " WITH ROLLUP";
         return $this;
     }
 
@@ -764,7 +845,7 @@ final class DataB
      */
     public function unionAll($callback): DataB
     {
-        return $this->_union($callback, 'all');
+        return $this->_union($callback, 'ALL');
     }
 
     /**
@@ -775,7 +856,7 @@ final class DataB
      */
     public function unionDistinct($callback): DataB
     {
-        return $this->_union($callback, 'distinct');
+        return $this->_union($callback, 'DISTINCT');
     }
 
     /**
@@ -786,7 +867,7 @@ final class DataB
      */
     public function having(string $field): DataB
     {
-        $this->sql .= " having ${field}";
+        $this->sql .= " HAVING ${field}";
         return $this;
     }
 
@@ -873,18 +954,27 @@ final class DataB
     private function addRelationalOperator($value, string $op):DataB
     {
         if (!$value) {
-            $this->sql .= " $op";
+            $this->sql .= " " . strtoupper($op);
             return $this;
         }
 
         if (is_callable($value)) {
+            // se $value for uma subquery
             $this->sql .= " $op (" . $this->subquery($value) . ")";
         } else {
             if (self::isPlaceholders($value)) {
+                // se $value for um placeholder
                 $this->sql .= " $op ${value}";
             } else {
-                $this->sql .= " $op ?";
-                $this->addData($value);
+                if(Util::startsWith('*', $value)) {
+                    // se $value for um campo da tabela
+                    $this->sql .= " $op " . str_replace('*', '', $value);
+                } else {
+                    // se $value for qualquer valor que nao seja um campo de tabela
+                    //ou um placeholder
+                    $this->sql .= " $op ?";
+                    $this->addData($value);
+                }
             }
         }
         return $this;
@@ -901,6 +991,7 @@ final class DataB
      */
     private function addLogicalOperator($value, string $op): DataB
     {
+        $op = strtoupper($op);
         if (is_callable($value)) {
             $this->sql .= " $op (" . $this->subquery($value) . ")";
         } else {
@@ -920,9 +1011,9 @@ final class DataB
     private function addLikeOperator(string $value, string $type): DataB
     {
         if (self::isPlaceholders($value)) {
-            $this->sql .= " like $value";
+            $this->sql .= " LIKE $value";
         } else {
-            $this->sql .= " like ?";
+            $this->sql .= " LIKE ?";
             if($type == 'starts') {
                 $this->addData($value . '%');
             } else if($type == 'contains') {
@@ -946,9 +1037,9 @@ final class DataB
         //existe um callback, caso positivo, cria instrucao
         // 'in' com subqueries
         if (isset($arg[0]) && is_callable($arg[0])) {
-            $this->sql .= " in(" . $this->subquery($arg[0]) . ")";
+            $this->sql .= " IN(" . $this->subquery($arg[0]) . ")";
         } else {
-            $this->sql .= " in(" . $this->listValues(self::varArgs($values)) . ")";
+            $this->sql .= " IN(" . $this->listValues(self::varArgs($values)) . ")";
         }
 
         return $this;
@@ -958,13 +1049,13 @@ final class DataB
     {
         $fields = self::varArgs($fields);
         if (count($fields) == 1) {// um campo para ordenar
-            if (strpos($this->sql, 'order by') === false) {
-                $this->sql .= " order by $fields[0] ${type}";
+            if (!Util::contains('ORDER BY', $this->sql)) {
+                $this->sql .= " ORDER BY $fields[0] ${type}";
             } else {
                 $this->sql .= ", $fields[0] ${type}";
             }
         } else if(count($fields) > 1) {// muitos campos para ordenar
-            $this->sql .= " order by " . self::listFields($fields) . " $type";
+            $this->sql .= " ORDER BY " . self::listFields($fields) . " $type";
         }
 
         return $this;
@@ -977,9 +1068,9 @@ final class DataB
         }
 
         if (self::isPlaceholders($low) && self::isPlaceholders($high)) {
-            $this->sql .= " between ${low} and ${high}";
+            $this->sql .= " BETWEEN ${low} AND ${high}";
         } else {
-            $this->sql .= " between ? and ?";
+            $this->sql .= " BETWEEN ? AND ?";
             $this->addData($low);
             $this->addData($high);
         }
@@ -990,18 +1081,21 @@ final class DataB
 
     private function _exists($callback, $type = null): DataB
     {
+        if(!Util::contains('WHERE', $this->sql)) {
+            $this->sql .= ' WHERE';
+        }
 
         if ($type) {
             $this->sql .= " ${type}";
         }
 
-        $this->sql .= " exists (" . $this->subquery($callback) . ")";
+        $this->sql .= " EXISTS (" . $this->subquery($callback) . ")";
         return $this;
     }
 
     private function _union($callback, string $type = null): DataB
     {
-        $union = "union";
+        $union = "UNION";
 
         if ($type) {
             $union .= " ${type}";
@@ -1102,5 +1196,39 @@ final class DataB
     public static function setPDO(\PDO $pdo)
     {
         self::$conn = $pdo;
+    }
+
+    // definicao de metodos magicos para chamada de funcoes do banco de dados
+
+    public function __call($name, $args)
+    {
+        return self::fn($name, $args, $this);
+    }
+
+    public static function __callStatic($name, $args)
+    {
+        return self::fn($name, $args, null);
+    }
+
+    private static function fn(string $fnName, array $fields, $_this): DataB 
+    {
+
+        //verifica se o nome do método inicia com o prefixo 'fn'
+        if(!Util::startsWith('fn', $fnName))
+            throw new DataBException($fnName . ' Não é uma função de Banco de Dados válida');
+
+        $fnName = str_replace('fn', '', $fnName);
+        $fnName = Util::underlineConverter($fnName);
+
+        $fields = self::varArgs($fields);
+
+        if(!$_this) {
+            $sql = "SELECT $fnName(" . self::listFields($fields) . ")";
+            return new DataB($sql);
+        } else {
+            $_this->sql .= ", $fnName(". self::listFields($fields) . ")";
+            return $_this;
+        }
+        
     }
 }
