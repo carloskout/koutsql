@@ -7,14 +7,14 @@ abstract class QueryBuilder
 {
 
     /** @var \PDO */
-    private static $conn;
+    private $conn;
 
     /**
-     * Instrução SQL
+     * Buffer de Instruções SQL
      *
      * @var string
      */
-    private $sql;
+    private $buffer;
 
     /**
      * Campos de entrada para instrução SQL.
@@ -36,10 +36,9 @@ abstract class QueryBuilder
      */
     private $hasValues = false;
 
-    private function __construct(string $sql = null, array $fields = null)
+    private function __construct(\PDO $pdo = null)
     {
-        $this->sql = trim($sql);
-        $this->fields = $fields ? self::varArgs($fields) : $fields;
+        $this->conn = $pdo;
     }
 
     /**
@@ -50,10 +49,11 @@ abstract class QueryBuilder
      * 
      * @return QueryBuilder
      */
-    public static function select(...$fields): QueryBuilder
+    public function select(...$fields): QueryBuilder
     {
-        $sql = "SELECT " . self::listFields(self::varArgs($fields));
-        return new QueryBuilder($sql);
+        $this->clear();
+        $this->sql = "SELECT " . Util::convertArrayToString(Util::varArgs($fields));
+        return $this;
     }
 
     /**
@@ -64,10 +64,11 @@ abstract class QueryBuilder
      * 
      * @return QueryBuilder
      */
-    public static function distinct(...$fields): QueryBuilder
+    public function distinct(...$fields): QueryBuilder
     {
-        $sql = "SELECT DISTINCT " . self::listFields(self::varArgs($fields));
-        return new QueryBuilder($sql);
+        $this->clear();
+        $this->sql = "SELECT DISTINCT " . Util::convertArrayToString(Util::varArgs($fields));
+        return $this;
     }
 
     /**
@@ -77,9 +78,11 @@ abstract class QueryBuilder
      * inseridos na tabela.
      * @return QueryBuilder
      */
-    public static function insert(...$fields): QueryBuilder
+    public function insert(...$fields): QueryBuilder
     {
-        $sql = 'INSERT INTO';
+        $this->clear();
+        $this->sql = 'INSERT INTO';
+        $this->fields = $fields;
         return new QueryBuilder($sql, $fields);
     }
 
@@ -107,7 +110,7 @@ abstract class QueryBuilder
      */
     public function set(...$values): QueryBuilder
     {
-        $arg = self::varArgs($values);
+        $arg = Util::varArgs($values);
 
         $this->sql .= " SET";
 
@@ -287,17 +290,17 @@ abstract class QueryBuilder
      */
     public function values(...$values): QueryBuilder
     {
-        $arg = self::varArgs($values);
+        $arg = Util::varArgs($values);
 
         //se $values for um callback entao será feito
         //um insert usando subquery
         if (isset($arg[0]) && is_callable($arg[0])) {
-            $this->sql .= " (" . self::listFields($this->fields) . ")";
+            $this->sql .= " (" . Util::convertArrayToString($this->fields) . ")";
             $this->sql .= " " . $this->subquery($arg[0]);
         } else {
             if (!$this->hasValues) {
                 $this->hasValues = true;
-                $this->sql .= " (" . self::listFields($this->fields) . ")";
+                $this->sql .= " (" . Util::convertArrayToString($this->fields) . ")";
                 $this->sql .= " VALUES (" . $this->listValues($arg) . ")";
             } else {
                 $this->sql .= ", (" . $this->listValues($arg) . ")";
@@ -314,7 +317,7 @@ abstract class QueryBuilder
      */
     public function table(...$name): QueryBuilder
     {
-        $name = implode(', ', self::varArgs($name));
+        $name = implode(', ', Util::varArgs($name));
         if(Util::startsWith('SELECT', $this->sql)) {
             $this->sql .= " FROM ${name}";
         } else {
@@ -805,7 +808,7 @@ abstract class QueryBuilder
      */
     public function groupBy(...$fields): QueryBuilder
     {
-        $this->sql .= " GROUP BY " . self::listFields(self::varArgs($fields));
+        $this->sql .= " GROUP BY " . Util::convertArrayToString(Util::varArgs($fields));
         return $this;
     }
 
@@ -819,7 +822,7 @@ abstract class QueryBuilder
      */
     public function groupByWithRollup(...$fields): QueryBuilder
     {
-        $this->sql .= " GROUP BY " . self::listFields(self::varArgs($fields));
+        $this->sql .= " GROUP BY " . Util::convertArrayToString(Util::varArgs($fields));
         $this->sql .= " WITH ROLLUP";
         return $this;
     }
@@ -1025,7 +1028,7 @@ abstract class QueryBuilder
 
     private function _in(array $values, string $type = null): QueryBuilder
     {
-        $arg = self::varArgs($values);
+        $arg = Util::varArgs($values);
 
         if ($type) {
             $this->sql .= " ${type}";
@@ -1037,7 +1040,7 @@ abstract class QueryBuilder
         if (isset($arg[0]) && is_callable($arg[0])) {
             $this->sql .= " IN(" . $this->subquery($arg[0]) . ")";
         } else {
-            $this->sql .= " IN(" . $this->listValues(self::varArgs($values)) . ")";
+            $this->sql .= " IN(" . $this->listValues(Util::varArgs($values)) . ")";
         }
 
         return $this;
@@ -1045,7 +1048,7 @@ abstract class QueryBuilder
 
     private function _orderBy(array $fields, $type): QueryBuilder
     {
-        $fields = self::varArgs($fields);
+        $fields = Util::varArgs($fields);
         if (count($fields) == 1) {// um campo para ordenar
             if (!Util::contains('ORDER BY', $this->sql)) {
                 $this->sql .= " ORDER BY $fields[0] ${type}";
@@ -1053,7 +1056,7 @@ abstract class QueryBuilder
                 $this->sql .= ", $fields[0] ${type}";
             }
         } else if(count($fields) > 1) {// muitos campos para ordenar
-            $this->sql .= " ORDER BY " . self::listFields($fields) . " $type";
+            $this->sql .= " ORDER BY " . Util::convertArrayToString($fields) . " $type";
         }
 
         return $this;
@@ -1118,11 +1121,6 @@ abstract class QueryBuilder
         array_push($this->data, $value);
     }
 
-    private static function listFields(array $fields): string
-    {
-        return implode(', ', $fields);
-    }
-
     /*recebe um array que pode conter tanto placeholders
     quanto valores de entrada. Se for placeholder, entao
     será retornado uma lista separada por virgulas
@@ -1146,16 +1144,6 @@ abstract class QueryBuilder
         }, $values);
 
         return implode(", ", $values);
-    }
-
-    /*
-    Esse metodo deve ser chamado para toda entrada de metodos
-    onde o paramentro é um array pois o array pode vir como
-    um varArgs ...$fields
-    */
-    private static function varArgs(array $args)
-    {
-        return is_array($args[0]) ? $args[0] : $args;
     }
 
     private static function isPlaceholders(string $value): bool
@@ -1183,19 +1171,6 @@ abstract class QueryBuilder
         return $data;
     }
 
-    private static function checkConnection()
-    {
-        if (!self::$conn) {
-            throw new \Exception('Conexão com banco de dados inválida!
-            Use o método QueryBuilder::setPDO para definir uma conexão válida.');
-        }
-    }
-
-    public static function setPDO(\PDO $pdo)
-    {
-        self::$conn = $pdo;
-    }
-
     // definicao de metodos magicos para chamada de funcoes do banco de dados
 
     public function __call($name, $args)
@@ -1218,15 +1193,21 @@ abstract class QueryBuilder
         $fnName = str_replace('fn', '', $fnName);
         $fnName = Util::underlineConverter($fnName);
 
-        $fields = self::varArgs($fields);
+        $fields = Util::varArgs($fields);
 
         if(!$_this) {
-            $sql = "SELECT $fnName(" . self::listFields($fields) . ")";
+            $sql = "SELECT $fnName(" . Util::convertArrayToString($fields) . ")";
             return new QueryBuilder($sql);
         } else {
-            $_this->sql .= ", $fnName(". self::listFields($fields) . ")";
+            $_this->sql .= ", $fnName(". Util::convertArrayToString($fields) . ")";
             return $_this;
-        }
-        
+        } 
+    }
+
+    public function clear() {
+        $this->sql = null;
+        $this->fields = null;
+        $this->data = null;
+
     }
 }

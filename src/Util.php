@@ -47,4 +47,25 @@ class Util
             return array_map('strtoupper', $subject);
         return strtoupper($subject);
     }
+
+    /**
+     * Converte os elementos de um array para string.
+     * Cada elemento é separado por vírgulas.
+     * @param array $param
+     * @return string
+     */
+    public static function convertArrayToString(array $param): string
+    {
+        return implode(', ', $param);
+    }
+
+    /*
+    Esse metodo deve ser chamado para toda entrada de metodos
+    onde o paramentro é um array pois o array pode vir como
+    um varArgs ...$fields
+    */
+    public static function varArgs(array $args)
+    {
+        return is_array($args[0]) ? $args[0] : $args;
+    }
 }

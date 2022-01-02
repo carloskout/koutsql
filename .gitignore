@@ -3,6 +3,7 @@
 *.cache
 phpunit.xml
 composer.lock
+index.php
 
 HELP.md
 target/
