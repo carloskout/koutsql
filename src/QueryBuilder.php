@@ -304,9 +304,9 @@ abstract class QueryBuilder
             if (!$this->hasValues) {
                 $this->hasValues = true;
                 $this->sql .= " (" . Util::convertArrayToString($this->fields) . ")";
-                $this->sql .= " VALUES (" . $this->listValues($arg) . ")";
+                $this->sql .= " VALUES (" . $this->covertDataToMaskPlaceholders($arg) . ")";
             } else {
-                $this->sql .= ", (" . $this->listValues($arg) . ")";
+                $this->sql .= ", (" . $this->covertDataToMaskPlaceholders($arg) . ")";
             }
         }
         return $this;
@@ -574,10 +574,10 @@ abstract class QueryBuilder
      * @param mix $high
      * @return QueryBuilder
      */
-    /*public function between($low, $high): QueryBuilder
+    public function between($low, $high): QueryBuilder
     {
         return $this->_between($low, $high);
-    }*/
+    }
 
     /**
      * Adiciona o operador lógico 'not between' à instrução SQL.
@@ -586,10 +586,10 @@ abstract class QueryBuilder
      * @param mix $high
      * @return QueryBuilder
      */
-    /*public function notBetween($low, $high): QueryBuilder
+    public function notBetween($low, $high): QueryBuilder
     {
         return $this->_between($low, $high, 'not');
-    }*/
+    }
 
     /**
      * Adiciona o operador lógico 'in' à instrução SQL.
@@ -598,10 +598,10 @@ abstract class QueryBuilder
      * se $values for uma funcao, entao será processada como uma subquery
      * @return QueryBuilder
      */
-    /*public function in(...$values): QueryBuilder
+    public function in(...$values): QueryBuilder
     {
         return $this->_in($values);
-    }*/
+    }
 
     /**
      * Adiciona o operador lógico 'not in' à instrução SQL.
@@ -610,10 +610,10 @@ abstract class QueryBuilder
      * se $values for uma funcao, entao será processada como uma subquery
      * @return QueryBuilder
      */
-    /*public function notIn(...$values): QueryBuilder
+    public function notIn(...$values): QueryBuilder
     {
         return $this->_in($values, 'not');
-    }*/
+    }
 
     /**
      * Adiciona o operador 'is null' à instrução SQL.
@@ -900,7 +900,7 @@ abstract class QueryBuilder
         if (!empty($this->data)) {
             $data = $this->data;
         } else if (!empty($data)) {
-            $data = Util::createPlaceholders($data);
+            $data = Util::prepareInputData($data);
         }
 
         try {
@@ -1036,7 +1036,7 @@ abstract class QueryBuilder
         return $this;
     }
 
-    /*
+    
     private function _in(array $values, string $type = null): QueryBuilder
     {
         $arg = Util::varArgs($values);
@@ -1051,13 +1051,13 @@ abstract class QueryBuilder
         if (isset($arg[0]) && is_callable($arg[0])) {
             $this->sql .= " IN(" . $this->createSubquery($arg[0]) . ")";
         } else {
-            $this->sql .= " IN(" . $this->listValues(Util::varArgs($values)) . ")";
+            $this->sql .= " IN(" . $this->covertDataToMaskPlaceholders(Util::varArgs($values)) . ")";
         }
 
         return $this;
-    }*/
+    }
 
-    /*
+    
     private function _orderBy(array $fields, $type): QueryBuilder
     {
         $fields = Util::varArgs($fields);
@@ -1116,7 +1116,7 @@ abstract class QueryBuilder
 
         $this->sql .= " ${union} " . $this->createSubquery($callback);
         return $this;
-    }*/
+    }
 
     private function createSubquery($callback): string
     {
@@ -1134,7 +1134,7 @@ abstract class QueryBuilder
     }
 
     /*recebe um array que pode conter tanto placeholders
-    quanto valores de entrada. Se for placeholder, entao
+    quanto valores literais. Se for placeholder, entao
     será retornado uma lista separada por virgulas
     Ex. :nome, :senha ou ?,?,?
 
@@ -1145,8 +1145,7 @@ abstract class QueryBuilder
     EX. valores entrada: 'carlos', 'Masculino'
      Lista gerada: ?, ?
     */
-
-    /*private function listValues(array $values): string
+    private function covertDataToMaskPlaceholders(array $values): string
     {
         $values = array_map(function ($value) {
             if (!Util::isPlaceholders($value)) {
@@ -1158,7 +1157,7 @@ abstract class QueryBuilder
 
         return implode(", ", $values);
     }
-    */
+
 
 
 

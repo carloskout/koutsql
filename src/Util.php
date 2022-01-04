@@ -2,8 +2,6 @@
 
 namespace Kout;
 
-use Exception;
-
 class Util
 {
 
@@ -69,7 +67,7 @@ class Util
         return is_array($args[0]) ? $args[0] : $args;
     }
 
-    public static function createPlaceholders(array $data): array
+    public static function prepareInputData(array $data): array
     {
         $keys = array_keys($data);
 
@@ -92,5 +90,30 @@ class Util
             return true;
         }
         return false;
+    }
+
+    /*recebe um array que pode conter tanto placeholders
+    quanto valores literais. Se for placeholder, entao
+    será retornado uma lista separada por virgulas
+    Ex. :nome, :senha ou ?,?,?
+
+    Caso receba valores de entrada, entao sera retornado
+    uma lista com mask placeholders representando os valores
+    de entradas.
+
+    EX. valores entrada: 'carlos', 'Masculino'
+     Lista gerada: ?, ?
+    */
+    public static function convertDataToPlaceholders(array $values, QueryBuilder $q): string
+    {
+        $values = array_map(function ($value) {
+            if (!Util::isPlaceholders($value)) {
+                $q->addData($value);
+                return '?';
+            }
+            return $value;
+        }, $values);
+
+        return implode(", ", $values);
     }
 }
