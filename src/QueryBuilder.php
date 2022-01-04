@@ -1,7 +1,9 @@
 <?php
 
 namespace Kout;
+
 use Kout\ResultSet;
+use PDOStatement;
 
 abstract class QueryBuilder
 {
@@ -14,7 +16,7 @@ abstract class QueryBuilder
      *
      * @var string
      */
-    private $buffer;
+    private $sql;
 
     /**
      * Campos de entrada para instrução SQL.
@@ -23,7 +25,7 @@ abstract class QueryBuilder
      *
      * @var array
      */
-    private $fields;
+    private $cols;
 
     private $data = array();
 
@@ -36,7 +38,7 @@ abstract class QueryBuilder
      */
     private $hasValues = false;
 
-    private function __construct(\PDO $pdo = null)
+    public function __construct(\PDO $pdo = null)
     {
         $this->conn = $pdo;
     }
@@ -49,10 +51,11 @@ abstract class QueryBuilder
      * 
      * @return QueryBuilder
      */
-    public function select(...$fields): QueryBuilder
+    public function get(string $table, array $cols = []): QueryBuilder
     {
         $this->clear();
-        $this->sql = "SELECT " . Util::convertArrayToString(Util::varArgs($fields));
+        $cols = empty($cols) ? '*' : Util::convertArrayToString($cols);
+        $this->sql = "SELECT $cols FROM $table";
         return $this;
     }
 
@@ -64,12 +67,12 @@ abstract class QueryBuilder
      * 
      * @return QueryBuilder
      */
-    public function distinct(...$fields): QueryBuilder
+    /*public function distinct(...$fields): QueryBuilder
     {
         $this->clear();
         $this->sql = "SELECT DISTINCT " . Util::convertArrayToString(Util::varArgs($fields));
         return $this;
-    }
+    }*/
 
     /**
      * Instrução INSERT.
@@ -78,13 +81,13 @@ abstract class QueryBuilder
      * inseridos na tabela.
      * @return QueryBuilder
      */
-    public function insert(...$fields): QueryBuilder
+    /*public function insert(...$fields): QueryBuilder
     {
         $this->clear();
         $this->sql = 'INSERT INTO';
         $this->fields = $fields;
         return new QueryBuilder($sql, $fields);
-    }
+    }*/
 
     /**
      * Instrução UPDATE.
@@ -93,11 +96,11 @@ abstract class QueryBuilder
      * atualizados na tabela.
      * @return QueryBuilder
      */
-    public static function update(...$fields): QueryBuilder
+    /*public static function update(...$fields): QueryBuilder
     {
         $sql = "UPDATE";
         return new QueryBuilder($sql, $fields);
-    }
+    }*/
 
     /**
      * Esse metodo monta a expressao SET da instrucao
@@ -108,7 +111,7 @@ abstract class QueryBuilder
      * @param varArgs ...$values - Literal ou callback
      * @return QueryBuilder
      */
-    public function set(...$values): QueryBuilder
+    /*public function set(...$values): QueryBuilder
     {
         $arg = Util::varArgs($values);
 
@@ -125,7 +128,7 @@ abstract class QueryBuilder
                 // se sim, entao temos como valor para o campo
                 //atual uma subquery
                 if (is_callable($arg[$i])) {
-                    $this->sql .= " = (" . $this->subquery($arg[$i]) . ")";
+                    $this->sql .= " = (" . $this->createSubquery($arg[$i]) . ")";
                 } else {
                     //se o valor de entrada atual for um placeholder :name ou ?
                     //entao será associado ao campo atual
@@ -155,7 +158,7 @@ abstract class QueryBuilder
         }
 
         return $this;
-    }
+    }*/
 
     /**
      * Instrução DELETE.
@@ -163,11 +166,11 @@ abstract class QueryBuilder
      * @param string $tableName - Nome da tabela
      * @return QueryBuilder
      */
-    public static function delete(string $tableName): QueryBuilder
+    /*public static function delete(string $tableName): QueryBuilder
     {
         $sql = "DELETE FROM ${tableName}";
         return new QueryBuilder($sql);
-    }
+    }*/
 
     /**
      * Adiciona a função agregação min() à instrução SQL.
@@ -175,7 +178,7 @@ abstract class QueryBuilder
      * @param string $field
      * @return QueryBuilder
      */
-    public function min(string $field): QueryBuilder {
+    /*public function min(string $field): QueryBuilder {
         if(isset($this)) {
             $this->sql .= ", MIN(${field})";
             return $this;
@@ -183,7 +186,7 @@ abstract class QueryBuilder
             $sql = "SELECT MIN(${field})";
             return new QueryBuilder($sql);
         }
-    }
+    }*/
 
     /**
      * Adiciona a função agregação max() à instrução SQL.
@@ -191,7 +194,7 @@ abstract class QueryBuilder
      * @param string $field
      * @return QueryBuilder
      */
-    public function max(string $field): QueryBuilder {
+    /*public function max(string $field): QueryBuilder {
         if(isset($this)) {
             $this->sql .= ", MAX(${field})";
             return $this;
@@ -199,7 +202,7 @@ abstract class QueryBuilder
             $sql = "SELECT MAX(${field})";
             return new QueryBuilder($sql);
         }
-    }
+    }*/
 
     /**
      * Adiciona a função agregação count() à instrução SQL.
@@ -208,7 +211,7 @@ abstract class QueryBuilder
      * @param string $field
      * @return QueryBuilder
      */
-    public function count(string $field): QueryBuilder
+    /*public function count(string $field): QueryBuilder
     {
         if(isset($this)) {
             $this->sql .= ", COUNT(${field})";
@@ -217,7 +220,7 @@ abstract class QueryBuilder
             $sql = "SELECT COUNT(${field})";
             return new QueryBuilder($sql);
         }
-    }
+    }*/
 
     /**
      * Adiciona a função agregação sum() à instrução SQL.
@@ -225,7 +228,7 @@ abstract class QueryBuilder
      * @param string $field
      * @return QueryBuilder
      */
-    public function sum(string $field): QueryBuilder {
+    /*public function sum(string $field): QueryBuilder {
         if(isset($this)) {
             $this->sql .= ", SUM(${field})";
             return $this;
@@ -233,7 +236,7 @@ abstract class QueryBuilder
             $sql = "SELECT SUM(${field})";
             return new QueryBuilder($sql);
         }
-    }
+    }*/
 
     /**
      * Adiciona a função agregação avg() à instrução SQL.
@@ -241,7 +244,7 @@ abstract class QueryBuilder
      * @param string $field
      * @return QueryBuilder
      */
-    public function avg(string $field): QueryBuilder {
+    /*public function avg(string $field): QueryBuilder {
         if(isset($this)) {
             $this->sql .= ", AVG(${field})";
             return $this;
@@ -249,7 +252,7 @@ abstract class QueryBuilder
             $sql = "SELECT AVG(${field})";
             return new QueryBuilder($sql);
         }
-    }
+    }*/
 
     /**
      * Abre uma transacao, executa a instrução SQL
@@ -258,7 +261,7 @@ abstract class QueryBuilder
      * @param [type] $callback
      * @return void
      */
-    public static function transaction($callback)
+    /*public static function transaction($callback)
     {
         self::checkConnection();
         $rs = null;
@@ -276,7 +279,7 @@ abstract class QueryBuilder
         self::$conn->commit();
 
         return $rs;
-    }
+    }*/
 
     /**
      * Usado na instruçao INSERT.
@@ -288,7 +291,7 @@ abstract class QueryBuilder
      * @param array ...$values
      * @return QueryBuilder
      */
-    public function values(...$values): QueryBuilder
+    /*public function values(...$values): QueryBuilder
     {
         $arg = Util::varArgs($values);
 
@@ -296,7 +299,7 @@ abstract class QueryBuilder
         //um insert usando subquery
         if (isset($arg[0]) && is_callable($arg[0])) {
             $this->sql .= " (" . Util::convertArrayToString($this->fields) . ")";
-            $this->sql .= " " . $this->subquery($arg[0]);
+            $this->sql .= " " . $this->createSubquery($arg[0]);
         } else {
             if (!$this->hasValues) {
                 $this->hasValues = true;
@@ -307,61 +310,45 @@ abstract class QueryBuilder
             }
         }
         return $this;
-    }
-
-    /**
-     * Adiciona o nome da tabela à instrução SQL
-     *
-     * @param string $name - Nome da tabela
-     * @return QueryBuilder
-     */
-    public function table(...$name): QueryBuilder
-    {
-        $name = implode(', ', Util::varArgs($name));
-        if(Util::startsWith('SELECT', $this->sql)) {
-            $this->sql .= " FROM ${name}";
-        } else {
-            $this->sql .= " ${name}";
-        }
-        return $this;
-    }
-
-    public function alias(string $alias): QueryBuilder
-    {
-        if(str_word_count($alias) > 1) {
-            $alias = "'${alias}'";
-        }
-        $this->sql .= " AS ${alias}";
-        return $this;
-    }
+    }*/
 
     /**
      * Adiciona cláusula where à instrução SQL.
-     *
-     * @param string|null $field - Se informado, o campo
-     * $field será adicionado logo após a cláusula where.
      * 
+     * Para fazer comparação entre colunas informe
+     * o caractere '*' no inicio de $value
+     *
+     * @param string $col - Nome da coluna
+     * @param string $op - Operador relacional
+     * @param mixed $value - Valor literal ou callback 
      * @return QueryBuilder
      */
-    public function cond(string $field = null): QueryBuilder
-    {
-        $this->sql .= " WHERE";
-
-        if ($field) {
-            $this->sql .= " ${field}";
+    public function filter(
+        string $col,
+        string $op = null,
+        $valueOrSubquery = null
+    ): QueryBuilder {
+        $this->sql .= " WHERE $col";
+        if (!empty($op) && !empty($valueOrSubquery)) {
+            if($op == '^' || $op == '.' || $op == '$') { // Like operator
+                $this->addLikeOperator($valueOrSubquery, $op);
+            } else {
+                $this->addRelationalOperator($valueOrSubquery, $op);
+            }
         }
         return $this;
     }
 
-    /**
-     * Usado para criar subexpressoes.
-     *
-     * @param string $name - Nome do campo
-     * @return QueryBuilder
-     */
-    public static function column(string $name): QueryBuilder
-    {
-        return new QueryBuilder(" ${name}");
+    public function subexpr(
+        string $col,
+        string $relOperator = null,
+        $valueOrSubquery = null
+    ): QueryBuilder {
+        $this->sql .= " $col";
+        if (!empty($relOperator) && !empty($valueOrSubquery)) {
+            $this->addRelationalOperator($valueOrSubquery, $relOperator);
+        }
+        return $this;
     }
 
     /**
@@ -409,10 +396,10 @@ abstract class QueryBuilder
      * @param string $column - Campo a ser comparado
      * @return QueryBuilder
      */
-    public function neColumn(string $column): QueryBuilder
+    /*public function neColumn(string $column): QueryBuilder
     {
         return $this->addRelationalOperator('*' . $column, '!=');
-    }
+    }*/
 
     /**
      * Adiciona o operador relacional '<' à instrução SQL.
@@ -517,27 +504,34 @@ abstract class QueryBuilder
     /**
      * Adiciona o operador lógico 'and' à instrução SQL.
      *
-     * @param string|callable $value - Adiciona $value
-     * após o operador 'and'. Se uma funcao for passado
-     * por parâmetro, então será processado como uma expressao
+     * @param mixed $value1 - Coluna ou callback para subexpressoes
+     * @param string $relOp - Relational Operator
+     * @param mixed $value2 - Valor literal ou callback para subquery
      * @return QueryBuilder
      */
-    public function and($value = null): QueryBuilder
-    {
-        return $this->addLogicalOperator($value, 'and');
+
+    public function and(
+        $valueOrSubexpression = null,
+        string $relOperator = null,
+        $valueOrSubquery = null
+    ): QueryBuilder {
+        return $this->addLogicalOperator($valueOrSubexpression, $relOperator, $valueOrSubquery, 'AND');
     }
 
     /**
      * Adiciona o operador lógico 'or' à instrução SQL.
      *
-     * @param string|callable $value - Adiciona $value
-     * após o operador 'or'. Se uma funcao for passado
-     * por parâmetro, então será processado como uma expressao
+     * @param mixed $value1 - Coluna ou callback para subexpressoes
+     * @param string $relOp - Relational Operator
+     * @param mixed $value2 - Valor literal ou callback para subquery
      * @return QueryBuilder
      */
-    public function or($value = null): QueryBuilder
-    {
-        return $this->addLogicalOperator($value, 'or');
+    public function or(
+        $valueOrSubexpression = null,
+        string $relOperator = null,
+        $valueOrSubquery = null
+    ): QueryBuilder {
+        return $this->addLogicalOperator($valueOrSubexpression, $relOperator, $valueOrSubquery, 'OR');
     }
 
     /**
@@ -548,7 +542,7 @@ abstract class QueryBuilder
      */
     public function startsWith(string $value): QueryBuilder
     {
-        return $this->addLikeOperator($value, 'starts');
+        return $this->addLikeOperator($value, '^');
     }
 
     /**
@@ -559,7 +553,7 @@ abstract class QueryBuilder
      */
     public function contains(string $value): QueryBuilder
     {
-        return $this->addLikeOperator($value, 'contains');
+        return $this->addLikeOperator($value, '.');
     }
 
     /**
@@ -570,7 +564,7 @@ abstract class QueryBuilder
      */
     public function endsWith($value): QueryBuilder
     {
-        return $this->addLikeOperator($value, 'ends');
+        return $this->addLikeOperator($value, '$');
     }
 
     /**
@@ -580,10 +574,10 @@ abstract class QueryBuilder
      * @param mix $high
      * @return QueryBuilder
      */
-    public function between($low, $high): QueryBuilder
+    /*public function between($low, $high): QueryBuilder
     {
         return $this->_between($low, $high);
-    }
+    }*/
 
     /**
      * Adiciona o operador lógico 'not between' à instrução SQL.
@@ -592,10 +586,10 @@ abstract class QueryBuilder
      * @param mix $high
      * @return QueryBuilder
      */
-    public function notBetween($low, $high): QueryBuilder
+    /*public function notBetween($low, $high): QueryBuilder
     {
         return $this->_between($low, $high, 'not');
-    }
+    }*/
 
     /**
      * Adiciona o operador lógico 'in' à instrução SQL.
@@ -604,10 +598,10 @@ abstract class QueryBuilder
      * se $values for uma funcao, entao será processada como uma subquery
      * @return QueryBuilder
      */
-    public function in(...$values): QueryBuilder
+    /*public function in(...$values): QueryBuilder
     {
         return $this->_in($values);
-    }
+    }*/
 
     /**
      * Adiciona o operador lógico 'not in' à instrução SQL.
@@ -616,30 +610,30 @@ abstract class QueryBuilder
      * se $values for uma funcao, entao será processada como uma subquery
      * @return QueryBuilder
      */
-    public function notIn(...$values): QueryBuilder
+    /*public function notIn(...$values): QueryBuilder
     {
         return $this->_in($values, 'not');
-    }
+    }*/
 
     /**
      * Adiciona o operador 'is null' à instrução SQL.
      * @return QueryBuilder
      */
-    public function isNull(): QueryBuilder
+    /*public function isNull(): QueryBuilder
     {
         $this->sql .= " IS NULL";
         return $this;
-    }
+    }*/
 
     /**
      * Adiciona o operador 'is not null' à instrução SQL.
      * @return QueryBuilder
      */
-    public function isNotNull(): QueryBuilder
+    /*public function isNotNull(): QueryBuilder
     {
         $this->sql .= " IS NOT NULL";
         return $this;
-    }
+    }*/
 
     /**
      * Adiciona a cláusula 'limit' à instrução SQL.
@@ -649,7 +643,7 @@ abstract class QueryBuilder
      * 
      * @return QueryBuilder
      */
-    public function limit(int $limit, int $offset = 0): QueryBuilder
+    /*public function limit(int $limit, int $offset = 0): QueryBuilder
     {
         $this->sql .= " LIMIT";
 
@@ -659,7 +653,7 @@ abstract class QueryBuilder
 
         $this->sql .= " $limit";
         return $this;
-    }
+    }*/
 
     /**
      * Adicona a cláusula 'order by field asc' à instrução SQL.
@@ -667,10 +661,10 @@ abstract class QueryBuilder
      * @param string $field - O campo a ser ordenado
      * @return QueryBuilder
      */
-    public function orderByAsc(...$fields): QueryBuilder
+    /*public function orderByAsc(...$fields): QueryBuilder
     {
         return $this->_orderBy($fields, 'ASC');
-    }
+    }*/
 
     /**
      * Adicona a cláusula 'order by field desc' à instrução SQL.
@@ -678,10 +672,10 @@ abstract class QueryBuilder
      * @param string $field - O campo a ser ordenado
      * @return QueryBuilder
      */
-    public function orderByDesc(...$fields): QueryBuilder
+    /*public function orderByDesc(...$fields): QueryBuilder
     {
         return $this->_orderBy($fields, 'DESC');
-    }
+    }*/
 
     /**
      * Adiciona a cláusula 'exists(subquery)' à instrução SQL.
@@ -691,10 +685,10 @@ abstract class QueryBuilder
      * 
      * @return QueryBuilder
      */
-    public function exists($callback): QueryBuilder
+    /*public function exists($callback): QueryBuilder
     {
         return $this->_exists($callback);
-    }
+    }*/
 
     /**
      * Adiciona a cláusula 'not exists(subquery)' à instrução SQL.
@@ -704,10 +698,10 @@ abstract class QueryBuilder
      * 
      * @return QueryBuilder
      */
-    public function notExists($callback): QueryBuilder
+    /*public function notExists($callback): QueryBuilder
     {
         return $this->_exists($callback, 'NOT');
-    }
+    }*/
 
     /**
      * Adiciona a cláusula 'inner join table_name' à
@@ -716,11 +710,11 @@ abstract class QueryBuilder
      * @param string $tableName
      * @return QueryBuilder
      */
-    public function innerJoin(string $tableName): QueryBuilder
+    /*public function innerJoin(string $tableName): QueryBuilder
     {
         $this->sql .= " INNER JOIN ${tableName}";
         return $this;
-    }
+    }*/
 
     /**
      * Adiciona a cláusula 'left join table_name' à
@@ -729,11 +723,11 @@ abstract class QueryBuilder
      * @param string $tableName
      * @return QueryBuilder
      */
-    public function leftJoin(string $tableName)
+    /*public function leftJoin(string $tableName)
     {
         $this->sql .= " LEFT JOIN ${tableName}";
         return $this;
-    }
+    }*/
 
     /**
      * Adiciona a cláusula 'right join table_name' à
@@ -742,11 +736,11 @@ abstract class QueryBuilder
      * @param string $tableName
      * @return QueryBuilder
      */
-    public function rightJoin(string $tableName)
+    /*public function rightJoin(string $tableName)
     {
         $this->sql .= " RIGHT JOIN ${tableName}";
         return $this;
-    }
+    }*/
 
     /**
      * Adiciona a cláusula 'cross join table_name' à
@@ -758,11 +752,11 @@ abstract class QueryBuilder
      * @param string $tableName
      * @return QueryBuilder
      */
-    public function crossJoin(string $tableName): QueryBuilder
+    /*public function crossJoin(string $tableName): QueryBuilder
     {
         $this->sql .= " CROSS JOIN ${tableName}";
         return $this;
-    }
+    }*/
 
     //usar este metodo quando os campos de juncao
     //das tabelas tiverem nomes diferentes
@@ -776,11 +770,11 @@ abstract class QueryBuilder
      * no predicado
      * @return QueryBuilder
      */
-    public function on(string $field): QueryBuilder
+    /*public function on(string $field): QueryBuilder
     {
         $this->sql .= " ON ${field}";
         return $this;
-    }
+    }*/
 
     /*
      * Adiciona a clásula 'using' à intrução SQL.
@@ -792,11 +786,11 @@ abstract class QueryBuilder
      * 
      * @return QueryBuilder
      */
-    public function using(string $field): QueryBuilder
+    /*public function using(string $field): QueryBuilder
     {
         $this->sql .= " USING(${field})";
         return $this;
-    }
+    }*/
 
     /**
      * Adiciona a cláusula 'groupy by' à instrução SQL.
@@ -806,11 +800,11 @@ abstract class QueryBuilder
      * 
      * @return QueryBuilder
      */
-    public function groupBy(...$fields): QueryBuilder
+    /*public function groupBy(...$fields): QueryBuilder
     {
         $this->sql .= " GROUP BY " . Util::convertArrayToString(Util::varArgs($fields));
         return $this;
-    }
+    }*/
 
     /**
      * Adiciona a cláusula 'groupy by $fields with rollup' à instrução SQL.
@@ -820,12 +814,12 @@ abstract class QueryBuilder
      * 
      * @return QueryBuilder
      */
-    public function groupByWithRollup(...$fields): QueryBuilder
+    /*public function groupByWithRollup(...$fields): QueryBuilder
     {
         $this->sql .= " GROUP BY " . Util::convertArrayToString(Util::varArgs($fields));
         $this->sql .= " WITH ROLLUP";
         return $this;
-    }
+    }*/
 
     /**
      * Adiciona a cláusula 'union (subquery)' à instrução SQL.
@@ -833,10 +827,10 @@ abstract class QueryBuilder
      * @param callabe $callback - subquery
      * @return QueryBuilder
      */
-    public function union($callback): QueryBuilder
+    /*public function union($callback): QueryBuilder
     {
         return $this->_union($callback);
-    }
+    }*/
 
     /**
      * Adiciona a cláusula 'union all (subquery)' à instrução SQL.
@@ -844,10 +838,10 @@ abstract class QueryBuilder
      * @param callabe $callback - subquery
      * @return QueryBuilder
      */
-    public function unionAll($callback): QueryBuilder
+    /*public function unionAll($callback): QueryBuilder
     {
         return $this->_union($callback, 'ALL');
-    }
+    }*/
 
     /**
      * Adiciona a cláusula 'union distinct (subquery)' à instrução SQL.
@@ -855,10 +849,10 @@ abstract class QueryBuilder
      * @param callabe $callback - subquery
      * @return QueryBuilder
      */
-    public function unionDistinct($callback): QueryBuilder
+    /*public function unionDistinct($callback): QueryBuilder
     {
         return $this->_union($callback, 'DISTINCT');
-    }
+    }*/
 
     /**
      * Adiciona a cláusula 'having' à instrução SQL.
@@ -866,11 +860,11 @@ abstract class QueryBuilder
      * @param string $field
      * @return QueryBuilder
      */
-    public function having(string $field): QueryBuilder
+    /*public function having(string $field): QueryBuilder
     {
         $this->sql .= " HAVING ${field}";
         return $this;
-    }
+    }*/
 
     /**
      * Retorna a instrução SQL no formato string
@@ -889,32 +883,28 @@ abstract class QueryBuilder
      * @param array $data
      * @return ResultSet
      */
-    public static function nativeSQL(string $sql, array $data = null): ResultSet
+    public function nativeSQL(string $sql, array $data = null)
     {
-        $QueryBuilder = new QueryBuilder();
-        $QueryBuilder->sql = $sql;
-        return $QueryBuilder->exec($data);
+        $this->clear();
+        $this->sql = $sql;
+        return $this->list($data);
     }
 
     /**
      * Executa instruções SQL
      *
-     * @return ResultSet
+     * @return PDOStatement
      */
-    public function exec(array $data = null): ResultSet
+    private function exec(?array $data = null): ?PDOStatement
     {
-        self::checkConnection();
-
         if (!empty($this->data)) {
             $data = $this->data;
         } else if (!empty($data)) {
-            $data = self::addPlaceholders($data);
+            $data = Util::createPlaceholders($data);
         }
 
-        $rs = new ResultSet();
-
         try {
-            $statement = self::$conn->prepare($this->sql, [
+            $statement = $this->conn->prepare($this->sql, [
                 \PDO::ATTR_CURSOR => \PDO::CURSOR_SCROLL
             ]);
 
@@ -923,28 +913,30 @@ abstract class QueryBuilder
             } else {
                 $statement->execute($data);
             }
-
-            $rs->setLastInsertedId(self::$conn->lastInsertId())
-            ->setRows($statement->rowCount())
-            ->setStatement($statement);
+            return $statement;
         } catch (\PDOException $e) {
             if (self::$conn->inTransaction()) {
                 self::$conn->rollBack();
             }
-            throw new \Exception(
-                $e->getMessage(),
-                $e->getCode() or 0,
-                $e
-            );
+            throw $e;
         }
 
-        return $rs;
+        return null;
+    }
+
+    public function list(array $data = null)
+    {
+        $st = $this->exec($data);
+        if (!$st) {
+            return null;
+        }
+        return $st->fetchAll(\PDO::FETCH_ASSOC);
     }
 
     /**
      * Adiciona operador relacional à instrução SQL
      *
-     * @param mix $value - Pode ser uma string que representa
+     * @param mix $valueOrSubquery - Pode ser uma string que representa
      * um valor a ser comparado. Ou pode ser um callable que
      * representa uma subquery.
      * 
@@ -952,51 +944,68 @@ abstract class QueryBuilder
      * (=, !=, <, >, >=, <=)
      * @return self
      */
-    private function addRelationalOperator($value, string $op):QueryBuilder
+    private function addRelationalOperator($valueOrSubquery, string $op): QueryBuilder
     {
-        if (!$value) {
+        if (!$valueOrSubquery) {
             $this->sql .= " " . strtoupper($op);
             return $this;
         }
 
-        if (is_callable($value)) {
-            // se $value for uma subquery
-            $this->sql .= " $op (" . $this->subquery($value) . ")";
-        } else {
-            if (self::isPlaceholders($value)) {
-                // se $value for um placeholder
-                $this->sql .= " $op ${value}";
-            } else {
-                if(Util::startsWith('*', $value)) {
-                    // se $value for um campo da tabela
-                    $this->sql .= " $op " . str_replace('*', '', $value);
-                } else {
-                    // se $value for qualquer valor que nao seja um campo de tabela
-                    //ou um placeholder
-                    $this->sql .= " $op ?";
-                    $this->addData($value);
-                }
-            }
+        // Se o valor for uma subquery
+        if (is_callable($valueOrSubquery)) {
+            $this->sql .= " $op (" . $this->createSubquery($valueOrSubquery) . ")";
+        } 
+        //Se o valor for um placeholder
+        else if (Util::isPlaceholders($valueOrSubquery)) {
+            $this->sql .= " $op ${valueOrSubquery}";
+        } 
+        //Se o valor for um campo de tabela
+        else if (Util::startsWith('*', $valueOrSubquery)) {
+            $this->sql .= " $op " . str_replace('*', '', $valueOrSubquery);
+        } 
+        // Senão É um valor literal
+        else {
+            $this->sql .= " $op ?";
+            $this->addData($valueOrSubquery);
         }
+
         return $this;
     }
 
     /**
      * Adiciona operadores logicos à instruçao SQL
      *
-     * @param mix $value - Pode ser uma string que representa
-     * um campo da tabela do banco de dados ou pode ser um
-     * callable que representa uma subexpressao
-     * @param string $op - Operador lógico (and, or)
+     * @param mixed $valueOrSubexpression - Coluna ou callback para subexpressoes
+     * @param string $relOperator - Operador Relacional
+     * @param mixed $valueOrSubquery - Valor literal ou callback para subquery
+     * @param string $logicalOperator - Operator Logico
      * @return QueryBuilder
      */
-    private function addLogicalOperator($value, string $op): QueryBuilder
-    {
-        $op = strtoupper($op);
-        if (is_callable($value)) {
-            $this->sql .= " $op (" . $this->subquery($value) . ")";
-        } else {
-            $this->sql .= " $op ${value}";
+
+    private function addLogicalOperator(
+        $valueOrSubexpression = null,
+        ?string $relOperator = null,
+        $valueOrSubquery = null,
+        string $logicalOperator
+    ): QueryBuilder {
+        $this->sql .= " $logicalOperator";
+
+        //Se for uma subexpressao
+        if (is_callable($valueOrSubexpression)) {
+            $this->sql .= " (" . $this->createSubquery($valueOrSubexpression) . ")";
+        }
+        // Se for uma expressao que tem comparação
+        else if (
+            is_string($valueOrSubexpression) &&
+            !empty($relOperator) &&
+            !empty($valueOrSubquery)
+        ) {
+            $this->sql .= " $valueOrSubexpression";
+            $this->addRelationalOperator($valueOrSubquery, $relOperator);
+        }
+        // Se for uma expressao com apenas uma coluna
+        else if (!empty($valueOrSubexpression) && is_string($valueOrSubexpression)) {
+            $this->sql .= " $valueOrSubexpression";
         }
         return $this;
     }
@@ -1009,15 +1018,16 @@ abstract class QueryBuilder
      * @param string $type - Tipo do like (starts, contains, ends)
      * @return QueryBuilder
      */
-    private function addLikeOperator(string $value, string $type): QueryBuilder
+
+     private function addLikeOperator(string $value, string $type): QueryBuilder
     {
-        if (self::isPlaceholders($value)) {
+        if (Util::isPlaceholders($value)) {
             $this->sql .= " LIKE $value";
         } else {
             $this->sql .= " LIKE ?";
-            if($type == 'starts') {
+            if($type == '^') {
                 $this->addData($value . '%');
-            } else if($type == 'contains') {
+            } else if($type == '.') {
                 $this->addData('%' . $value . '%');
             } else {
                 $this->addData('%' . $value);
@@ -1026,6 +1036,7 @@ abstract class QueryBuilder
         return $this;
     }
 
+    /*
     private function _in(array $values, string $type = null): QueryBuilder
     {
         $arg = Util::varArgs($values);
@@ -1038,14 +1049,15 @@ abstract class QueryBuilder
         //existe um callback, caso positivo, cria instrucao
         // 'in' com subqueries
         if (isset($arg[0]) && is_callable($arg[0])) {
-            $this->sql .= " IN(" . $this->subquery($arg[0]) . ")";
+            $this->sql .= " IN(" . $this->createSubquery($arg[0]) . ")";
         } else {
             $this->sql .= " IN(" . $this->listValues(Util::varArgs($values)) . ")";
         }
 
         return $this;
-    }
+    }*/
 
+    /*
     private function _orderBy(array $fields, $type): QueryBuilder
     {
         $fields = Util::varArgs($fields);
@@ -1068,7 +1080,7 @@ abstract class QueryBuilder
             $this->sql .= " ${type}";
         }
 
-        if (self::isPlaceholders($low) && self::isPlaceholders($high)) {
+        if (Util::isPlaceholders($low) && Util::isPlaceholders($high)) {
             $this->sql .= " BETWEEN ${low} AND ${high}";
         } else {
             $this->sql .= " BETWEEN ? AND ?";
@@ -1090,7 +1102,7 @@ abstract class QueryBuilder
             $this->sql .= " ${type}";
         }
 
-        $this->sql .= " EXISTS (" . $this->subquery($callback) . ")";
+        $this->sql .= " EXISTS (" . $this->createSubquery($callback) . ")";
         return $this;
     }
 
@@ -1102,16 +1114,16 @@ abstract class QueryBuilder
             $union .= " ${type}";
         }
 
-        $this->sql .= " ${union} " . $this->subquery($callback);
+        $this->sql .= " ${union} " . $this->createSubquery($callback);
         return $this;
-    }
+    }*/
 
-    private function subquery($callback): string
+    private function createSubquery($callback): string
     {
         if (!is_callable($callback)) {
             throw new \Exception("Callback ${callback} inválido.");
         }
-        $subquery = call_user_func($callback, new QueryBuilder()); // return QueryBuilder
+        $subquery = call_user_func($callback, new $this); // return QueryBuilder
         $this->data = array_merge($this->data, $subquery->data);
         return trim($subquery->sql());
     }
@@ -1133,10 +1145,11 @@ abstract class QueryBuilder
     EX. valores entrada: 'carlos', 'Masculino'
      Lista gerada: ?, ?
     */
-    private function listValues(array $values): string
+
+    /*private function listValues(array $values): string
     {
         $values = array_map(function ($value) {
-            if (!self::isPlaceholders($value)) {
+            if (!Util::isPlaceholders($value)) {
                 $this->addData($value);
                 return '?';
             }
@@ -1145,34 +1158,13 @@ abstract class QueryBuilder
 
         return implode(", ", $values);
     }
+    */
 
-    private static function isPlaceholders(string $value): bool
-    {
-        if (
-            preg_match('/^:[a-z0-9]{1,}(_\w+)?$/i', $value)
-            || preg_match('/^\?$/', $value)
-        ) {
-            return true;
-        }
-        return false;
-    }
 
-    private static function addPlaceholders(array $data): array
-    {
-        $keys = array_keys($data);
 
-        if ($keys[0] !== 0) {
-            $placeholders = array_map(function ($key) {
-                return ":${key}";
-            }, $keys);
-
-            return array_combine($placeholders, array_values($data));
-        }
-        return $data;
-    }
 
     // definicao de metodos magicos para chamada de funcoes do banco de dados
-
+    /*
     public function __call($name, $args)
     {
         return self::fn($name, $args, $this);
@@ -1181,9 +1173,9 @@ abstract class QueryBuilder
     public static function __callStatic($name, $args)
     {
         return self::fn($name, $args, null);
-    }
+    }*/
 
-    private static function fn(string $fnName, array $fields, $_this): QueryBuilder 
+    /*private static function fn(string $fnName, array $fields, $_this): QueryBuilder 
     {
 
         //verifica se o nome do método inicia com o prefixo 'fn'
@@ -1202,12 +1194,12 @@ abstract class QueryBuilder
             $_this->sql .= ", $fnName(". Util::convertArrayToString($fields) . ")";
             return $_this;
         } 
-    }
+    }*/
 
-    public function clear() {
-        $this->sql = null;
-        $this->fields = null;
-        $this->data = null;
-
+    public function clear()
+    {
+        $this->sql = '';
+        $this->cols = [];
+        $this->data = [];
     }
 }

@@ -68,4 +68,29 @@ class Util
     {
         return is_array($args[0]) ? $args[0] : $args;
     }
+
+    public static function createPlaceholders(array $data): array
+    {
+        $keys = array_keys($data);
+
+        if ($keys[0] !== 0) {
+            $placeholders = array_map(function ($key) {
+                return ":${key}";
+            }, $keys);
+
+            return array_combine($placeholders, array_values($data));
+        }
+        return $data;
+    }
+
+    public static function isPlaceholders(string $value): bool
+    {
+        if (
+            preg_match('/^:[a-z0-9]{1,}(_\w+)?$/i', $value)
+            || preg_match('/^\?$/', $value)
+        ) {
+            return true;
+        }
+        return false;
+    }
 }
