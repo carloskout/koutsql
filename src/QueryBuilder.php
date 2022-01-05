@@ -7,6 +7,8 @@ use PDOStatement;
 
 abstract class QueryBuilder
 {
+    
+use QueryBuilderTrait;
 
     /** @var \PDO */
     private $conn;
@@ -900,7 +902,7 @@ abstract class QueryBuilder
         if (!empty($this->data)) {
             $data = $this->data;
         } else if (!empty($data)) {
-            $data = Util::prepareInputData($data);
+            $data = $this->prepareInputData($data);
         }
 
         try {
@@ -932,235 +934,6 @@ abstract class QueryBuilder
         }
         return $st->fetchAll(\PDO::FETCH_ASSOC);
     }
-
-    /**
-     * Adiciona operador relacional à instrução SQL
-     *
-     * @param mix $valueOrSubquery - Pode ser uma string que representa
-     * um valor a ser comparado. Ou pode ser um callable que
-     * representa uma subquery.
-     * 
-     * @param string $op - Operador relacional 
-     * (=, !=, <, >, >=, <=)
-     * @return self
-     */
-    private function addRelationalOperator($valueOrSubquery, string $op): QueryBuilder
-    {
-        if (!$valueOrSubquery) {
-            $this->sql .= " " . strtoupper($op);
-            return $this;
-        }
-
-        // Se o valor for uma subquery
-        if (is_callable($valueOrSubquery)) {
-            $this->sql .= " $op (" . $this->createSubquery($valueOrSubquery) . ")";
-        } 
-        //Se o valor for um placeholder
-        else if (Util::isPlaceholders($valueOrSubquery)) {
-            $this->sql .= " $op ${valueOrSubquery}";
-        } 
-        //Se o valor for um campo de tabela
-        else if (Util::startsWith('*', $valueOrSubquery)) {
-            $this->sql .= " $op " . str_replace('*', '', $valueOrSubquery);
-        } 
-        // Senão É um valor literal
-        else {
-            $this->sql .= " $op ?";
-            $this->addData($valueOrSubquery);
-        }
-
-        return $this;
-    }
-
-    /**
-     * Adiciona operadores logicos à instruçao SQL
-     *
-     * @param mixed $valueOrSubexpression - Coluna ou callback para subexpressoes
-     * @param string $relOperator - Operador Relacional
-     * @param mixed $valueOrSubquery - Valor literal ou callback para subquery
-     * @param string $logicalOperator - Operator Logico
-     * @return QueryBuilder
-     */
-
-    private function addLogicalOperator(
-        $valueOrSubexpression = null,
-        ?string $relOperator = null,
-        $valueOrSubquery = null,
-        string $logicalOperator
-    ): QueryBuilder {
-        $this->sql .= " $logicalOperator";
-
-        //Se for uma subexpressao
-        if (is_callable($valueOrSubexpression)) {
-            $this->sql .= " (" . $this->createSubquery($valueOrSubexpression) . ")";
-        }
-        // Se for uma expressao que tem comparação
-        else if (
-            is_string($valueOrSubexpression) &&
-            !empty($relOperator) &&
-            !empty($valueOrSubquery)
-        ) {
-            $this->sql .= " $valueOrSubexpression";
-            $this->addRelationalOperator($valueOrSubquery, $relOperator);
-        }
-        // Se for uma expressao com apenas uma coluna
-        else if (!empty($valueOrSubexpression) && is_string($valueOrSubexpression)) {
-            $this->sql .= " $valueOrSubexpression";
-        }
-        return $this;
-    }
-
-    /**
-     * Adiciona operador like à instrução SQL
-     *
-     * @param string $value - Representa um valor literal ou um
-     * placeholder
-     * @param string $type - Tipo do like (starts, contains, ends)
-     * @return QueryBuilder
-     */
-
-     private function addLikeOperator(string $value, string $type): QueryBuilder
-    {
-        if (Util::isPlaceholders($value)) {
-            $this->sql .= " LIKE $value";
-        } else {
-            $this->sql .= " LIKE ?";
-            if($type == '^') {
-                $this->addData($value . '%');
-            } else if($type == '.') {
-                $this->addData('%' . $value . '%');
-            } else {
-                $this->addData('%' . $value);
-            }
-        }
-        return $this;
-    }
-
-    
-    private function _in(array $values, string $type = null): QueryBuilder
-    {
-        $arg = Util::varArgs($values);
-
-        if ($type) {
-            $this->sql .= " ${type}";
-        }
-
-        //verifica se na primeira posicao do array
-        //existe um callback, caso positivo, cria instrucao
-        // 'in' com subqueries
-        if (isset($arg[0]) && is_callable($arg[0])) {
-            $this->sql .= " IN(" . $this->createSubquery($arg[0]) . ")";
-        } else {
-            $this->sql .= " IN(" . $this->covertDataToMaskPlaceholders(Util::varArgs($values)) . ")";
-        }
-
-        return $this;
-    }
-
-    
-    private function _orderBy(array $fields, $type): QueryBuilder
-    {
-        $fields = Util::varArgs($fields);
-        if (count($fields) == 1) {// um campo para ordenar
-            if (!Util::contains('ORDER BY', $this->sql)) {
-                $this->sql .= " ORDER BY $fields[0] ${type}";
-            } else {
-                $this->sql .= ", $fields[0] ${type}";
-            }
-        } else if(count($fields) > 1) {// muitos campos para ordenar
-            $this->sql .= " ORDER BY " . Util::convertArrayToString($fields) . " $type";
-        }
-
-        return $this;
-    }
-
-    private function _between($low, $high, string $type = null): QueryBuilder
-    {
-        if ($type) {
-            $this->sql .= " ${type}";
-        }
-
-        if (Util::isPlaceholders($low) && Util::isPlaceholders($high)) {
-            $this->sql .= " BETWEEN ${low} AND ${high}";
-        } else {
-            $this->sql .= " BETWEEN ? AND ?";
-            $this->addData($low);
-            $this->addData($high);
-        }
-
-
-        return $this;
-    }
-
-    private function _exists($callback, $type = null): QueryBuilder
-    {
-        if(!Util::contains('WHERE', $this->sql)) {
-            $this->sql .= ' WHERE';
-        }
-
-        if ($type) {
-            $this->sql .= " ${type}";
-        }
-
-        $this->sql .= " EXISTS (" . $this->createSubquery($callback) . ")";
-        return $this;
-    }
-
-    private function _union($callback, string $type = null): QueryBuilder
-    {
-        $union = "UNION";
-
-        if ($type) {
-            $union .= " ${type}";
-        }
-
-        $this->sql .= " ${union} " . $this->createSubquery($callback);
-        return $this;
-    }
-
-    private function createSubquery($callback): string
-    {
-        if (!is_callable($callback)) {
-            throw new \Exception("Callback ${callback} inválido.");
-        }
-        $subquery = call_user_func($callback, new $this); // return QueryBuilder
-        $this->data = array_merge($this->data, $subquery->data);
-        return trim($subquery->sql());
-    }
-
-    private function addData($value)
-    {
-        array_push($this->data, $value);
-    }
-
-    /*recebe um array que pode conter tanto placeholders
-    quanto valores literais. Se for placeholder, entao
-    será retornado uma lista separada por virgulas
-    Ex. :nome, :senha ou ?,?,?
-
-    Caso receba valores de entrada, entao sera retornado
-    uma lista com mask placeholders representando os valores
-    de entradas.
-
-    EX. valores entrada: 'carlos', 'Masculino'
-     Lista gerada: ?, ?
-    */
-    private function covertDataToMaskPlaceholders(array $values): string
-    {
-        $values = array_map(function ($value) {
-            if (!Util::isPlaceholders($value)) {
-                $this->addData($value);
-                return '?';
-            }
-            return $value;
-        }, $values);
-
-        return implode(", ", $values);
-    }
-
-
-
-
 
     // definicao de metodos magicos para chamada de funcoes do banco de dados
     /*
@@ -1195,10 +968,4 @@ abstract class QueryBuilder
         } 
     }*/
 
-    public function clear()
-    {
-        $this->sql = '';
-        $this->cols = [];
-        $this->data = [];
-    }
 }
