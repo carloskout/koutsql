@@ -7,7 +7,7 @@ use PDOStatement;
 
 abstract class QueryBuilder
 {
-    
+
 use QueryBuilderTrait;
 
     /** @var \PDO */
@@ -334,6 +334,8 @@ use QueryBuilderTrait;
         if (!empty($op) && !empty($valueOrSubquery)) {
             if($op == '^' || $op == '.' || $op == '$') { // Like operator
                 $this->addLikeOperator($valueOrSubquery, $op);
+            } else if($op == 'in' || $op == 'not in') {
+                $this->_in($valueOrSubquery, $op);
             } else {
                 $this->addRelationalOperator($valueOrSubquery, $op);
             }
@@ -602,7 +604,7 @@ use QueryBuilderTrait;
      */
     public function in(...$values): QueryBuilder
     {
-        return $this->_in($values);
+        return $this->_in($values, 'in');
     }
 
     /**
@@ -614,7 +616,7 @@ use QueryBuilderTrait;
      */
     public function notIn(...$values): QueryBuilder
     {
-        return $this->_in($values, 'not');
+        return $this->_in($values, 'not in');
     }
 
     /**

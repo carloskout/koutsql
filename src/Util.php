@@ -62,7 +62,7 @@ class Util
     onde o paramentro é um array pois o array pode vir como
     um varArgs ...$fields
     */
-    public static function varArgs(array $args)
+    public static function varArgs($args)
     {
         return is_array($args[0]) ? $args[0] : $args;
     }
