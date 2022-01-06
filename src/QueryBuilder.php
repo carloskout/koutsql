@@ -623,21 +623,21 @@ use QueryBuilderTrait;
      * Adiciona o operador 'is null' à instrução SQL.
      * @return QueryBuilder
      */
-    /*public function isNull(): QueryBuilder
+    public function isNull(): QueryBuilder
     {
         $this->sql .= " IS NULL";
         return $this;
-    }*/
+    }
 
     /**
      * Adiciona o operador 'is not null' à instrução SQL.
      * @return QueryBuilder
      */
-    /*public function isNotNull(): QueryBuilder
+    public function isNotNull(): QueryBuilder
     {
         $this->sql .= " IS NOT NULL";
         return $this;
-    }*/
+    }
 
     /**
      * Adiciona a cláusula 'limit' à instrução SQL.
@@ -647,7 +647,7 @@ use QueryBuilderTrait;
      * 
      * @return QueryBuilder
      */
-    /*public function limit(int $limit, int $offset = 0): QueryBuilder
+    public function limit(int $limit, int $offset = 0): QueryBuilder
     {
         $this->sql .= " LIMIT";
 
@@ -657,7 +657,7 @@ use QueryBuilderTrait;
 
         $this->sql .= " $limit";
         return $this;
-    }*/
+    }
 
     /**
      * Adicona a cláusula 'order by field asc' à instrução SQL.
@@ -665,10 +665,10 @@ use QueryBuilderTrait;
      * @param string $field - O campo a ser ordenado
      * @return QueryBuilder
      */
-    /*public function orderByAsc(...$fields): QueryBuilder
+    public function orderByAsc(...$fields): QueryBuilder
     {
         return $this->_orderBy($fields, 'ASC');
-    }*/
+    }
 
     /**
      * Adicona a cláusula 'order by field desc' à instrução SQL.
@@ -676,10 +676,10 @@ use QueryBuilderTrait;
      * @param string $field - O campo a ser ordenado
      * @return QueryBuilder
      */
-    /*public function orderByDesc(...$fields): QueryBuilder
+    public function orderByDesc(...$fields): QueryBuilder
     {
         return $this->_orderBy($fields, 'DESC');
-    }*/
+    }
 
     /**
      * Adiciona a cláusula 'exists(subquery)' à instrução SQL.
@@ -689,10 +689,10 @@ use QueryBuilderTrait;
      * 
      * @return QueryBuilder
      */
-    /*public function exists($callback): QueryBuilder
+    public function exists($callback): QueryBuilder
     {
         return $this->_exists($callback);
-    }*/
+    }
 
     /**
      * Adiciona a cláusula 'not exists(subquery)' à instrução SQL.
@@ -702,10 +702,10 @@ use QueryBuilderTrait;
      * 
      * @return QueryBuilder
      */
-    /*public function notExists($callback): QueryBuilder
+    public function notExists($callback): QueryBuilder
     {
         return $this->_exists($callback, 'NOT');
-    }*/
+    }
 
     /**
      * Adiciona a cláusula 'inner join table_name' à
