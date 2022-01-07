@@ -715,11 +715,11 @@ use QueryBuilderTrait;
      * @param string $tableName
      * @return QueryBuilder
      */
-    /*public function innerJoin(string $tableName): QueryBuilder
+    public function innerJoin(string $table, string $col1, string $col2): QueryBuilder
     {
-        $this->sql .= " INNER JOIN ${tableName}";
+        $this->sql .= " INNER JOIN $table ON $col1 = $col2";
         return $this;
-    }*/
+    }
 
     /**
      * Adiciona a cláusula 'left join table_name' à
@@ -728,11 +728,11 @@ use QueryBuilderTrait;
      * @param string $tableName
      * @return QueryBuilder
      */
-    /*public function leftJoin(string $tableName)
+    public function leftJoin(string $table, string $col1, string $col2)
     {
-        $this->sql .= " LEFT JOIN ${tableName}";
+        $this->sql .= " LEFT JOIN $table ON $col1 = $col2";
         return $this;
-    }*/
+    }
 
     /**
      * Adiciona a cláusula 'right join table_name' à
@@ -741,11 +741,11 @@ use QueryBuilderTrait;
      * @param string $tableName
      * @return QueryBuilder
      */
-    /*public function rightJoin(string $tableName)
+    public function rightJoin(string $table, string $col1, string $col2)
     {
-        $this->sql .= " RIGHT JOIN ${tableName}";
+        $this->sql .= " RIGHT JOIN $table ON $col1 = $col2";
         return $this;
-    }*/
+    }
 
     /**
      * Adiciona a cláusula 'cross join table_name' à
@@ -757,45 +757,11 @@ use QueryBuilderTrait;
      * @param string $tableName
      * @return QueryBuilder
      */
-    /*public function crossJoin(string $tableName): QueryBuilder
+    public function crossJoin(string $table, string $col1, string $col2): QueryBuilder
     {
-        $this->sql .= " CROSS JOIN ${tableName}";
+        $this->sql .= " CROSS JOIN $table ON $col1 = $col2";
         return $this;
-    }*/
-
-    //usar este metodo quando os campos de juncao
-    //das tabelas tiverem nomes diferentes
-
-    /**
-     * Adiciona a clásula 'on' à intrução SQL.
-     * Usar este método quando os campos de juncão
-     * das tabelas tiverem nomes diferentes
-     * 
-     * @param string $field - Campo que será usado
-     * no predicado
-     * @return QueryBuilder
-     */
-    /*public function on(string $field): QueryBuilder
-    {
-        $this->sql .= " ON ${field}";
-        return $this;
-    }*/
-
-    /*
-     * Adiciona a clásula 'using' à intrução SQL.
-     * Usar este método quando os campos de juncão
-     * das tabelas tiverem os mesmos nomes.
-     * 
-     * @param string $field - Nome do campo comum às
-     * tabelas de junção.
-     * 
-     * @return QueryBuilder
-     */
-    /*public function using(string $field): QueryBuilder
-    {
-        $this->sql .= " USING(${field})";
-        return $this;
-    }*/
+    }
 
     /**
      * Adiciona a cláusula 'groupy by' à instrução SQL.
