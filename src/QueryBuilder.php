@@ -46,17 +46,18 @@ use QueryBuilderTrait;
     }
 
     /**
-     * Instrução SELECT.
-     *
-     * @param varArgs ...$fields - Lista de campos que serão
-     * selecionados na tabela.
+     * Recupera dados
+     * @param mixed $table - Espera-se que seja passado o nome da tabela
+     * tanto como string quanto como array. 
      * 
+     * @param array $cols - Lista de colunas a serem recuperadas.
      * @return QueryBuilder
      */
-    public function get(string $table, array $cols = []): QueryBuilder
+    public function get($table, array $cols = []): QueryBuilder
     {
         $this->clear();
         $cols = empty($cols) ? '*' : Util::convertArrayToString($cols);
+        $table = is_string($table) ? $table : Util::convertArrayToString($table);
         $this->sql = "SELECT $cols FROM $table";
         return $this;
     }
