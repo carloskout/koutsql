@@ -771,11 +771,11 @@ use QueryBuilderTrait;
      * 
      * @return QueryBuilder
      */
-    /*public function groupBy(...$fields): QueryBuilder
+    public function groupBy(...$fields): QueryBuilder
     {
         $this->sql .= " GROUP BY " . Util::convertArrayToString(Util::varArgs($fields));
         return $this;
-    }*/
+    }
 
     /**
      * Adiciona a cláusula 'groupy by $fields with rollup' à instrução SQL.
@@ -785,12 +785,12 @@ use QueryBuilderTrait;
      * 
      * @return QueryBuilder
      */
-    /*public function groupByWithRollup(...$fields): QueryBuilder
+    public function groupByWithRollup(...$fields): QueryBuilder
     {
         $this->sql .= " GROUP BY " . Util::convertArrayToString(Util::varArgs($fields));
         $this->sql .= " WITH ROLLUP";
         return $this;
-    }*/
+    }
 
     /**
      * Adiciona a cláusula 'union (subquery)' à instrução SQL.
@@ -798,10 +798,10 @@ use QueryBuilderTrait;
      * @param callabe $callback - subquery
      * @return QueryBuilder
      */
-    /*public function union($callback): QueryBuilder
+    public function union($callback): QueryBuilder
     {
         return $this->_union($callback);
-    }*/
+    }
 
     /**
      * Adiciona a cláusula 'union all (subquery)' à instrução SQL.
@@ -809,10 +809,10 @@ use QueryBuilderTrait;
      * @param callabe $callback - subquery
      * @return QueryBuilder
      */
-    /*public function unionAll($callback): QueryBuilder
+    public function unionAll($callback): QueryBuilder
     {
         return $this->_union($callback, 'ALL');
-    }*/
+    }
 
     /**
      * Adiciona a cláusula 'union distinct (subquery)' à instrução SQL.
@@ -820,10 +820,10 @@ use QueryBuilderTrait;
      * @param callabe $callback - subquery
      * @return QueryBuilder
      */
-    /*public function unionDistinct($callback): QueryBuilder
+    public function unionDistinct($callback): QueryBuilder
     {
         return $this->_union($callback, 'DISTINCT');
-    }*/
+    }
 
     /**
      * Adiciona a cláusula 'having' à instrução SQL.
@@ -831,11 +831,11 @@ use QueryBuilderTrait;
      * @param string $field
      * @return QueryBuilder
      */
-    /*public function having(string $field): QueryBuilder
+    public function having(string $field): QueryBuilder
     {
         $this->sql .= " HAVING ${field}";
         return $this;
-    }*/
+    }
 
     /**
      * Retorna a instrução SQL no formato string
