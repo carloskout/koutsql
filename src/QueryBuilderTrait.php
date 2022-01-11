@@ -239,6 +239,16 @@ trait QueryBuilderTrait {
         return $this;
     }
 
+    private function _fn(string $fn, ...$params) {
+        $params = Util::convertArrayToString($params);
+        $pos = strpos($this->sql, ' FROM');
+        if($this->sql[$pos -1] === '*') {
+            $this->sql = substr_replace($this->sql, "$fn($params)", $pos - 1, 1);
+        } else {
+            $this->sql = substr_replace($this->sql, ", $fn($params) ", $pos, 1);
+        }
+    }
+
     private function createSubquery($callback): string
     {
         if (!is_callable($callback)) {
@@ -278,4 +288,5 @@ trait QueryBuilderTrait {
 
         return implode(", ", $values);
     }
+    
 }

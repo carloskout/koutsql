@@ -209,21 +209,14 @@ use QueryBuilderTrait;
 
     /**
      * Adiciona a função agregação count() à instrução SQL.
-     * QueryBuilder::count('*')
-     * QueryBuilder::select('*')->count('*')
      * @param string $field
      * @return QueryBuilder
      */
-    /*public function count(string $field): QueryBuilder
+    public function count(string $col): QueryBuilder
     {
-        if(isset($this)) {
-            $this->sql .= ", COUNT(${field})";
-            return $this;
-        } else {
-            $sql = "SELECT COUNT(${field})";
-            return new QueryBuilder($sql);
-        }
-    }*/
+        $this->_fn('COUNT', $col);
+        return $this;
+    }
 
     /**
      * Adiciona a função agregação sum() à instrução SQL.
@@ -897,11 +890,24 @@ use QueryBuilderTrait;
 
     public function list(array $data = null)
     {
+        return $this->_exec($data, \PDO::FETCH_ASSOC);
+    }
+
+    public function singleResult(array $data = null)
+    {
+        $rs = $this->_exec($data, \PDO::FETCH_NUM);
+        if(is_null($rs))
+            return $rs;
+        return $rs[0][0];
+    }
+
+    private function _exec(?array $data = null, int $fetch)
+    {
         $st = $this->exec($data);
         if (!$st) {
             return null;
         }
-        return $st->fetchAll(\PDO::FETCH_ASSOC);
+        return $st->fetchAll($fetch);
     }
 
     // definicao de metodos magicos para chamada de funcoes do banco de dados
