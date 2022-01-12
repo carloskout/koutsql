@@ -34,18 +34,18 @@ trait QueryBuilderTrait {
      * @param string $value
      * @return boolean
      */
-    private function isPlaceholders(string $value): bool
+    private function containsPlaceholders(string $value): bool
     {
         if (
-            preg_match('/^:[a-z0-9]{1,}(_\w+)?$/i', $value)
-            || preg_match('/^\?$/', $value)
+            preg_match('/:[a-z0-9]{1,}(_\w+)?/i', $value)
+            || preg_match('/\?/', $value)
         ) {
             return true;
         }
         return false;
     }
 
-    private function clear()
+    private function reset()
     {
         $this->sql = '';
         $this->cols = [];
@@ -75,7 +75,7 @@ trait QueryBuilderTrait {
             $this->sql .= " $op (" . $this->createSubquery($valueOrSubquery) . ")";
         } 
         //Se o valor for um placeholder
-        else if ($this->isPlaceholders($valueOrSubquery)) {
+        else if ($this->containsPlaceholders($valueOrSubquery)) {
             $this->sql .= " $op ${valueOrSubquery}";
         } 
         //Se o valor for um campo de tabela
@@ -139,7 +139,7 @@ trait QueryBuilderTrait {
 
     private function addLikeOperator(string $value, string $type): QueryBuilder
     {
-        if ($this->isPlaceholders($value)) {
+        if ($this->containsPlaceholders($value)) {
             $this->sql .= " LIKE $value";
         } else {
             $this->sql .= " LIKE ?";
@@ -201,7 +201,7 @@ trait QueryBuilderTrait {
             $this->sql .= " ${type}";
         }
 
-        if ($this->isPlaceholders($low) && $this->isPlaceholders($high)) {
+        if ($this->containsPlaceholders($low) && $this->containsPlaceholders($high)) {
             $this->sql .= " BETWEEN ${low} AND ${high}";
         } else {
             $this->sql .= " BETWEEN ? AND ?";
@@ -279,7 +279,7 @@ trait QueryBuilderTrait {
     private function covertDataToMaskPlaceholders(array $values): string
     {
         $values = array_map(function ($value) {
-            if (!$this->isPlaceholders($value)) {
+            if (!$this->containsPlaceholders($value)) {
                 $this->addData($value);
                 return '?';
             }

@@ -55,7 +55,7 @@ use QueryBuilderTrait;
      */
     public function get($table, array $cols = []): QueryBuilder
     {
-        $this->clear();
+        $this->reset();
         $cols = empty($cols) ? '*' : Util::convertArrayToString($cols);
         $table = is_string($table) ? $table : Util::convertArrayToString($table);
         $this->sql = "SELECT $cols FROM $table";
@@ -72,7 +72,7 @@ use QueryBuilderTrait;
      */
     /*public function distinct(...$fields): QueryBuilder
     {
-        $this->clear();
+        $this->reset();
         $this->sql = "SELECT DISTINCT " . Util::convertArrayToString(Util::varArgs($fields));
         return $this;
     }*/
@@ -84,13 +84,13 @@ use QueryBuilderTrait;
      * inseridos na tabela.
      * @return QueryBuilder
      */
-    /*public function insert(...$fields): QueryBuilder
+    public function add(string $table, ...$cols): QueryBuilder
     {
-        $this->clear();
-        $this->sql = 'INSERT INTO';
-        $this->fields = $fields;
-        return new QueryBuilder($sql, $fields);
-    }*/
+        $this->reset();
+        $cols = Util::convertArrayToString(Util::varArgs($cols));
+        $this->sql = "INSERT INTO $table ($cols)";
+        return $this;
+    }
 
     /**
      * Instrução UPDATE.
@@ -135,7 +135,7 @@ use QueryBuilderTrait;
                 } else {
                     //se o valor de entrada atual for um placeholder :name ou ?
                     //entao será associado ao campo atual
-                    if($this->isPlaceholders($arg[$i])) {
+                    if($this->containsPlaceholders($arg[$i])) {
                         $this->sql .= " = " . $arg[$i];
                     } else {
                         // caso o valor de entrada atual seja um
@@ -181,15 +181,10 @@ use QueryBuilderTrait;
      * @param string $field
      * @return QueryBuilder
      */
-    /*public function min(string $field): QueryBuilder {
-        if(isset($this)) {
-            $this->sql .= ", MIN(${field})";
-            return $this;
-        } else {
-            $sql = "SELECT MIN(${field})";
-            return new QueryBuilder($sql);
-        }
-    }*/
+    public function min(string $col): QueryBuilder {
+        $this->_fn('MIN', $col);
+        return $this;
+    }
 
     /**
      * Adiciona a função agregação max() à instrução SQL.
@@ -197,15 +192,10 @@ use QueryBuilderTrait;
      * @param string $field
      * @return QueryBuilder
      */
-    /*public function max(string $field): QueryBuilder {
-        if(isset($this)) {
-            $this->sql .= ", MAX(${field})";
-            return $this;
-        } else {
-            $sql = "SELECT MAX(${field})";
-            return new QueryBuilder($sql);
-        }
-    }*/
+    public function max(string $col): QueryBuilder {
+        $this->_fn('MAX', $col);
+        return $this;
+    }
 
     /**
      * Adiciona a função agregação count() à instrução SQL.
@@ -224,15 +214,10 @@ use QueryBuilderTrait;
      * @param string $field
      * @return QueryBuilder
      */
-    /*public function sum(string $field): QueryBuilder {
-        if(isset($this)) {
-            $this->sql .= ", SUM(${field})";
-            return $this;
-        } else {
-            $sql = "SELECT SUM(${field})";
-            return new QueryBuilder($sql);
-        }
-    }*/
+    public function sum(string $col): QueryBuilder {
+        $this->_fn('SUM', $col);
+        return $this;
+    }
 
     /**
      * Adiciona a função agregação avg() à instrução SQL.
@@ -240,15 +225,10 @@ use QueryBuilderTrait;
      * @param string $field
      * @return QueryBuilder
      */
-    /*public function avg(string $field): QueryBuilder {
-        if(isset($this)) {
-            $this->sql .= ", AVG(${field})";
-            return $this;
-        } else {
-            $sql = "SELECT AVG(${field})";
-            return new QueryBuilder($sql);
-        }
-    }*/
+    public function avg(string $col): QueryBuilder {
+        $this->_fn('AVG', $col);
+        return $this;
+    }
 
     /**
      * Abre uma transacao, executa a instrução SQL
@@ -257,11 +237,8 @@ use QueryBuilderTrait;
      * @param [type] $callback
      * @return void
      */
-    /*public static function transaction($callback)
+    public function transaction($callback)
     {
-        self::checkConnection();
-        $rs = null;
-
         if (!is_callable($callback)) {
             throw new \Exception(
                 'Parâmetro inválido! Esperava-se que um callable
@@ -275,7 +252,7 @@ use QueryBuilderTrait;
         self::$conn->commit();
 
         return $rs;
-    }*/
+    }
 
     /**
      * Usado na instruçao INSERT.
@@ -307,6 +284,25 @@ use QueryBuilderTrait;
         }
         return $this;
     }*/
+
+    public function input(array $data, array $data1 = null): QueryBuilder
+    {
+        if(empty($data)) {
+            throw new \Exception('Parâmetro inválido! O campo $data não pode ser vazio ou nulo.');
+        }
+
+        if($this->containsPlaceholders(Util::convertArrayToString($data)) 
+        && !is_null($data1)) {
+            // $data são os placeholders e $data1 são os dados para os placesholders
+            $this->sql .= " VALUES (" . Util::convertArrayToString($data) . ")";
+            $this->addData($data1);
+        } else {
+            // $data são os dados de entrada
+            $this->sql .= " VALUES (" . $this->covertDataToMaskPlaceholders($data) . ")";
+        }
+
+        return $this;
+    }
 
     /**
      * Adiciona cláusula where à instrução SQL.
@@ -849,7 +845,7 @@ use QueryBuilderTrait;
      */
     public function nativeSQL(string $sql, array $data = null)
     {
-        $this->clear();
+        $this->reset();
         $this->sql = $sql;
         return $this->list($data);
     }
@@ -890,24 +886,11 @@ use QueryBuilderTrait;
 
     public function list(array $data = null)
     {
-        return $this->_exec($data, \PDO::FETCH_ASSOC);
-    }
-
-    public function singleResult(array $data = null)
-    {
-        $rs = $this->_exec($data, \PDO::FETCH_NUM);
-        if(is_null($rs))
-            return $rs;
-        return $rs[0][0];
-    }
-
-    private function _exec(?array $data = null, int $fetch)
-    {
         $st = $this->exec($data);
         if (!$st) {
             return null;
         }
-        return $st->fetchAll($fetch);
+        return $st->fetchAll(\PDO::FETCH_ASSOC);
     }
 
     // definicao de metodos magicos para chamada de funcoes do banco de dados
