@@ -285,7 +285,7 @@ use QueryBuilderTrait;
         return $this;
     }*/
 
-    public function input(array $data, array $data1 = null): QueryBuilder
+    public function input(array $data, array $data1 = null): int
     {
         if(empty($data)) {
             throw new \Exception('Parâmetro inválido! O campo $data não pode ser vazio ou nulo.');
@@ -301,7 +301,9 @@ use QueryBuilderTrait;
             $this->sql .= " VALUES (" . $this->covertDataToMaskPlaceholders($data) . ")";
         }
 
-        return $this;
+        $this->exec();
+
+        return $this->conn->lastInsertId();
     }
 
     /**
@@ -858,7 +860,7 @@ use QueryBuilderTrait;
     private function exec(?array $data = null): ?PDOStatement
     {
         if (!empty($this->data)) {
-            $data = $this->data;
+            $data = $this->prepareInputData($this->data);
         } else if (!empty($data)) {
             $data = $this->prepareInputData($data);
         }

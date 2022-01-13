@@ -261,7 +261,11 @@ trait QueryBuilderTrait {
 
     private function addData($value)
     {
-        array_push($this->data, $value);
+        if(is_array($value)) {
+            $this->data = array_merge($this->data, $value);
+        } else {
+            array_push($this->data, $value);
+        }
     }
 
     /*recebe um array que pode conter tanto placeholders
