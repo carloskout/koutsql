@@ -172,7 +172,8 @@ trait QueryBuilderTrait {
         } else if (is_array($valuesOrCallback) && is_callable($valuesOrCallback[0])) {
             $this->sql .= " (" . $this->createSubquery($valuesOrCallback[0]) . ")";
         } else {
-            $this->sql .= " (" . $this->covertDataToMaskPlaceholders($valuesOrCallback) . ")";
+            $this->sql .= " (" . $this->createMaskPlaceholders($valuesOrCallback) . ")";
+            $this->addData($valuesOrCallback);
         }
 
         return $this;
@@ -280,14 +281,34 @@ trait QueryBuilderTrait {
     EX. valores entrada: 'carlos', 'Masculino'
      Lista gerada: ?, ?
     */
-    private function covertDataToMaskPlaceholders(array $values): string
+    private function createMaskPlaceholders(array $values): string
     {
         $values = array_map(function ($value) {
             if (!$this->containsPlaceholders($value)) {
-                $this->addData($value);
                 return '?';
             }
             return $value;
+        }, $values);
+
+        return implode(", ", $values);
+    }
+
+    private function createNamedPlaceholders(array $values): string
+    {
+        $values = array_map(function ($value) {
+            if (!$this->containsPlaceholders($value)) {
+                return ":$value";
+            }
+            return $value;
+        }, $values);
+
+        return implode(", ", $values);
+    }
+
+    private function createSetColumns(array $values): string
+    {
+        $values = array_map(function ($value) {
+            return "$value = :$value";
         }, $values);
 
         return implode(", ", $values);

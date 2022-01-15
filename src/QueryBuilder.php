@@ -84,26 +84,61 @@ use QueryBuilderTrait;
      * inseridos na tabela.
      * @return QueryBuilder
      */
-    public function add(string $table, ...$cols): QueryBuilder
+    private function persist(string $table, array $data): int
     {
-        $this->reset();
-        $cols = Util::convertArrayToString(Util::varArgs($cols));
-        $this->sql = "INSERT INTO $table ($cols)";
-        return $this;
+        $keys = array_keys($data);
+        $cols = Util::convertArrayToString($keys);
+        $values = $this->createNamedPlaceholders($keys);
+        $this->sql = "INSERT INTO $table ($cols) VALUES ($values)";
+        $this->exec($data);
+        return $this->conn->lastInsertId();
     }
 
     /**
-     * Instrução UPDATE.
-     *
-     * @param [type] ...$fields - Nomes dos campos que serão
-     * atualizados na tabela.
+     * Atualiza ou insere um novo registro
+     * 
+     * @param string $table - Nome da tabela
+     * @param array $data - array associativo de dados onde as chaves
+     * devem corresponder aos nomes da colunas da tabela.
+     * @param mixed $filter - Usado sempre quando for fazer atualizacao.
+     * Esse parâmetro pode ser:
+     * -> uma string com valor '*' que significa que 
+     * todos os registros serao atualizados.
+     * -> um array contendo o filtro ['id', '=>', '2']
+     * -> um QueryBuilder $q->filter('id', '=', 12)
      * @return QueryBuilder
      */
-    /*public static function update(...$fields): QueryBuilder
+    public function put(string $table, array $data, $filter = null): int
     {
-        $sql = "UPDATE";
-        return new QueryBuilder($sql, $fields);
-    }*/
+        if(empty($data) || empty($table)) {
+            throw new \Exception('Parâmetro inválido! O campo $table ou $data não podem ser vazio.');
+        }
+
+        $this->reset();
+
+        if(is_null($filter)) {
+            return $this->persist($table, $data);
+        } else {
+            return $this->update($table, $data, $filter);
+        }
+    }
+
+    private function update(string $table, array $data, ...$value): int 
+    {
+        $cols = $this->createSetColumns(array_keys($data));
+        $this->addData($data);
+        $this->sql = "UPDATE $table SET $cols";
+
+        $value = Util::varArgs($value);
+        if(is_callable($value[0])) {
+            $filter = call_user_func($value[0], new $this);
+            $this->sql .= " " . $filter->sql();
+            //$this->addData($filter->)
+        }
+
+        var_dump($this->sql());
+        return 1;
+    }
 
     /**
      * Esse metodo monta a expressao SET da instrucao
@@ -264,26 +299,6 @@ use QueryBuilderTrait;
      * @param array ...$values
      * @return QueryBuilder
      */
-    /*public function values(...$values): QueryBuilder
-    {
-        $arg = Util::varArgs($values);
-
-        //se $values for um callback entao será feito
-        //um insert usando subquery
-        if (isset($arg[0]) && is_callable($arg[0])) {
-            $this->sql .= " (" . Util::convertArrayToString($this->fields) . ")";
-            $this->sql .= " " . $this->createSubquery($arg[0]);
-        } else {
-            if (!$this->hasValues) {
-                $this->hasValues = true;
-                $this->sql .= " (" . Util::convertArrayToString($this->fields) . ")";
-                $this->sql .= " VALUES (" . $this->covertDataToMaskPlaceholders($arg) . ")";
-            } else {
-                $this->sql .= ", (" . $this->covertDataToMaskPlaceholders($arg) . ")";
-            }
-        }
-        return $this;
-    }*/
 
     public function input(array $data, array $data1 = null): int
     {
@@ -298,7 +313,7 @@ use QueryBuilderTrait;
             $this->addData($data1);
         } else {
             // $data são os dados de entrada
-            $this->sql .= " VALUES (" . $this->covertDataToMaskPlaceholders($data) . ")";
+            $this->sql .= " VALUES (" . $this->createMaskPlaceholders($data) . ")";
         }
 
         $this->exec();
