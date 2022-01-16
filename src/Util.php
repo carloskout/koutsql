@@ -27,6 +27,12 @@ class Util
         return ($len > 0) ? substr($content, -$len) == $search : true;
     }
 
+    public static function getLastWord(string $string): string 
+    {
+        $words = explode(' ', $string);
+        return $words[count($words) - 1];
+    }
+
     /**
      * Este método adiciona o caracter underline entre cada palavra
      * presente em $subject.
@@ -65,5 +71,92 @@ class Util
     public static function varArgs($args)
     {
         return is_array($args[0]) ? $args[0] : $args;
+    }
+
+    private static function createSubquery($callback): string
+    {
+        if (!is_callable($callback)) {
+            throw new \Exception("Callback ${callback} inválido.");
+        }
+        $subquery = call_user_func($callback, new $this); // return QueryBuilder
+        $this->data = array_merge($this->data, $subquery->data);
+        return trim($subquery->sql());
+    }
+
+    /*recebe um array que pode conter tanto placeholders
+    quanto valores literais. Se for placeholder, entao
+    será retornado uma lista separada por virgulas
+    Ex. :nome, :senha ou ?,?,?
+
+    Caso receba valores de entrada, entao sera retornado
+    uma lista com mask placeholders representando os valores
+    de entradas.
+
+    EX. valores entrada: 'carlos', 'Masculino'
+     Lista gerada: ?, ?
+    */
+    private static function createMaskPlaceholders(array $values): string
+    {
+        $values = array_map(function ($value) {
+            if (!$this->containsPlaceholders($value)) {
+                return '?';
+            }
+            return $value;
+        }, $values);
+
+        return implode(", ", $values);
+    }
+
+    private static function createNamedPlaceholders(array $values): string
+    {
+        $values = array_map(function ($value) {
+            if (!$this->containsPlaceholders($value)) {
+                return ":$value";
+            }
+            return $value;
+        }, $values);
+
+        return implode(", ", $values);
+    }
+
+    private function createSetColumns(array $values): string
+    {
+        $values = array_map(function ($value) {
+            return "$value = :$value";
+        }, $values);
+
+        return implode(", ", $values);
+    }
+
+    /**
+     * Verifica se $value é um named placeholders 
+     * ou mask placeholders.
+     *
+     * @param string $value
+     * @return boolean
+     */
+    private static function containsPlaceholders(string $value): bool
+    {
+        if (
+            preg_match('/:[a-z0-9]{1,}(_\w+)?/i', $value)
+            || preg_match('/\?/', $value)
+        ) {
+            return true;
+        }
+        return false;
+    }
+
+    private static function prepareInputData(array $data): array
+    {
+        $keys = array_keys($data);
+
+        if ($keys[0] !== 0) {
+            $placeholders = array_map(function ($key) {
+                return ":${key}";
+            }, $keys);
+
+            return array_combine($placeholders, array_values($data));
+        }
+        return $data;
     }
 }
