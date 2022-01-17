@@ -1,7 +1,9 @@
-<?php 
+<?php
+
 namespace Kout;
 
-class LogicalOperator {
+trait LogicalOperator
+{
 
     /**
      * Adiciona o operador lógico 'and' à instrução SQL.
@@ -9,15 +11,15 @@ class LogicalOperator {
      * @param mixed $value1 - Coluna ou callback para subexpressoes
      * @param string $relOp - Relational Operator
      * @param mixed $value2 - Valor literal ou callback para subquery
-     * @return QueryBuilder
+     * @return Statement
      */
 
     public function and(
-        $valueOrSubexpression = null,
-        string $relOperator = null,
+        $colOrSubexpression = null,
+        string $op = null,
         $valueOrSubquery = null
-    ): QueryBuilder {
-        return $this->addLogicalOperator($valueOrSubexpression, $relOperator, $valueOrSubquery, 'AND');
+    ): Statement {
+        return $this->chainExpr($colOrSubexpression, $op, $valueOrSubquery, 'AND');
     }
 
     /**
@@ -26,23 +28,23 @@ class LogicalOperator {
      * @param mixed $value1 - Coluna ou callback para subexpressoes
      * @param string $relOp - Relational Operator
      * @param mixed $value2 - Valor literal ou callback para subquery
-     * @return QueryBuilder
+     * @return Statement
      */
     public function or(
-        $valueOrSubexpression = null,
-        string $relOperator = null,
+        $colOrSubexpression = null,
+        string $op = null,
         $valueOrSubquery = null
-    ): QueryBuilder {
-        return $this->addLogicalOperator($valueOrSubexpression, $relOperator, $valueOrSubquery, 'OR');
+    ): Statement {
+        return $this->chainExpr($colOrSubexpression, $op, $valueOrSubquery, 'OR');
     }
 
     /**
      * Adiciona o operador lógico 'like pattern%' à instrução SQL.
      *
      * @param string $value
-     * @return QueryBuilder
+     * @return Statement
      */
-    public function startsWith(string $value): QueryBuilder
+    public function startsWith(string $value): Statement
     {
         return $this->addLikeOperator($value, '^');
     }
@@ -51,9 +53,9 @@ class LogicalOperator {
      * Adiciona o operador lógico 'like %pattern%' à instrução SQL.
      *
      * @param string $value
-     * @return QueryBuilder
+     * @return Statement
      */
-    public function contains(string $value): QueryBuilder
+    public function contains(string $value): Statement
     {
         return $this->addLikeOperator($value, '.');
     }
@@ -62,9 +64,9 @@ class LogicalOperator {
      * Adiciona o operador lógico 'like %pattern' à instrução SQL.
      *
      * @param string $value
-     * @return QueryBuilder
+     * @return Statement
      */
-    public function endsWith($value): QueryBuilder
+    public function endsWith($value): Statement
     {
         return $this->addLikeOperator($value, '$');
     }
@@ -74,11 +76,11 @@ class LogicalOperator {
      *
      * @param mix $low
      * @param mix $high
-     * @return QueryBuilder
+     * @return Statement
      */
-    public function between($low, $high): QueryBuilder
+    public function between($low, $high): Statement
     {
-        return $this->_between($low, $high);
+        return $this->addBetweenOperator($low, $high);
     }
 
     /**
@@ -86,11 +88,11 @@ class LogicalOperator {
      *
      * @param mix $low
      * @param mix $high
-     * @return QueryBuilder
+     * @return Statement
      */
-    public function notBetween($low, $high): QueryBuilder
+    public function notBetween($low, $high): Statement
     {
-        return $this->_between($low, $high, 'not');
+        return $this->addBetweenOperator($low, $high, 'not');
     }
 
     /**
@@ -98,11 +100,11 @@ class LogicalOperator {
      *
      * @param varArgs ...$values - Lista de valores para comparação.
      * se $values for uma funcao, entao será processada como uma subquery
-     * @return QueryBuilder
+     * @return Statement
      */
-    public function in(...$values): QueryBuilder
+    public function in(...$values): Statement
     {
-        return $this->_in($values, 'in');
+        return $this->addInOperator($values, 'in');
     }
 
     /**
@@ -110,18 +112,18 @@ class LogicalOperator {
      *
      * @param varArgs ...$values - Lista de valores para comparação.
      * se $values for uma funcao, entao será processada como uma subquery
-     * @return QueryBuilder
+     * @return Statement
      */
-    public function notIn(...$values): QueryBuilder
+    public function notIn(...$values): Statement
     {
-        return $this->_in($values, 'not in');
+        return $this->addInOperator($values, 'not in');
     }
 
     /**
      * Adiciona o operador 'is null' à instrução SQL.
-     * @return QueryBuilder
+     * @return Statement
      */
-    public function isNull(): QueryBuilder
+    public function isNull(): Statement
     {
         $this->sql .= " IS NULL";
         return $this;
@@ -129,31 +131,48 @@ class LogicalOperator {
 
     /**
      * Adiciona o operador 'is not null' à instrução SQL.
-     * @return QueryBuilder
+     * @return Statement
      */
-    public function isNotNull(): QueryBuilder
+    public function isNotNull(): Statement
     {
         $this->sql .= " IS NOT NULL";
         return $this;
     }
 
     /**
-     * Adiciona operadores logicos à instruçao SQL
+     * Adiciona a cláusula 'exists(subquery)' à instrução SQL.
      *
-     * @param mixed $valueOrSubexpression - Coluna ou callback para subexpressoes
-     * @param string $relOperator - Operador Relacional
-     * @param mixed $valueOrSubquery - Valor literal ou callback para subquery
-     * @param string $logicalOperator - Operator Logico
-     * @return QueryBuilder
+     * @param callable $callback - função que será processada como uma
+     * subquery
+     * 
+     * @return Statement
      */
+    public function exists($callback): Statement
+    {
+        return $this->addExistsOperator($callback);
+    }
+
+    /**
+     * Adiciona a cláusula 'not exists(subquery)' à instrução SQL.
+     *
+     * @param callable $callback - função que será processada como uma
+     * subquery
+     * 
+     * @return Statement
+     */
+    public function notExists($callback): Statement
+    {
+        return $this->addExistsOperator($callback, 'NOT');
+    }
 
     private function addLogicalOperator(
         $valueOrSubexpression = null,
         ?string $relOperator = null,
         $valueOrSubquery = null,
-        string $logicalOperator
-    ): QueryBuilder {
-        $this->sql .= " $logicalOperator";
+        string $type
+    ): Statement {
+
+        $this->sql .= " $type";
 
         //Se for uma subexpressao
         if (is_callable($valueOrSubexpression)) {
@@ -181,18 +200,18 @@ class LogicalOperator {
      * @param string $value - Representa um valor literal ou um
      * placeholder
      * @param string $type - Tipo do like (starts, contains, ends)
-     * @return QueryBuilder
+     * @return Statement
      */
 
-    private function addLikeOperator(string $value, string $type): QueryBuilder
+    private function addLikeOperator(string $value, string $type): Statement
     {
-        if ($this->containsPlaceholders($value)) {
+        if (Util::containsPlaceholders($value)) {
             $this->sql .= " LIKE $value";
         } else {
             $this->sql .= " LIKE ?";
-            if($type == '^') {
+            if ($type == '^') {
                 $this->addData($value . '%');
-            } else if($type == '.') {
+            } else if ($type == '.') {
                 $this->addData('%' . $value . '%');
             } else {
                 $this->addData('%' . $value);
@@ -205,28 +224,34 @@ class LogicalOperator {
      * Adiciona operador IN à instrução SQL
      * @param mixed $valuesOrCallback - varArgs, array ou callback
      * @param string|null $type - 'in' ou 'not in'
-     * @return QueryBuilder
+     * @return Statement
      */
-    private function _in($valuesOrCallback, string $type = null): QueryBuilder
+    private function addInOperator($value, string $type = null): Statement
     {
-        if(is_array($valuesOrCallback)) {
-            $valuesOrCallback = Util::varArgs($valuesOrCallback);
-        }
-        $this->sql .= " " . strtoupper($type);
+        $value = is_array($value) ? Util::varArgs($value) : $value;
+        $this->sql .= !is_null($type) ? ' ' . strtoupper($type) : '';
 
-        if(is_callable($valuesOrCallback)) {
-            $this->sql .= " (" . $this->createSubquery($valuesOrCallback) . ")";
-        } else if (is_array($valuesOrCallback) && is_callable($valuesOrCallback[0])) {
-            $this->sql .= " (" . $this->createSubquery($valuesOrCallback[0]) . ")";
-        } else {
-            $this->sql .= " (" . $this->createMaskPlaceholders($valuesOrCallback) . ")";
-            $this->addData($valuesOrCallback);
+        // Caso a subquery seja passada pelo método filter('id', 'in', $callback)
+        if (is_callable($value)) {
+            $this->sql .= " (" . $this->createSubquery($value) . ")";
+        }
+
+        // caso o callback seja passado usando os métodos in(...$varAgs) ou notIn(...$varArgs)
+        else if (is_array($value) && is_callable($value[0])) {
+            $this->sql .= " (" . $this->createSubquery($value[0]) . ")";
+        }
+
+        // aqui o array de dados pode vir tanto do método filter()
+        // quanto dos métodos in() e notin()
+        else {
+            $this->sql .= " (" . Util::createMaskPlaceholders($value) . ")";
+            $this->addData($value);
         }
 
         return $this;
     }
 
-    private function _between($low, $high, string $type = null): QueryBuilder
+    private function addBetweenOperator($low, $high, string $type = null): Statement
     {
         if ($type) {
             $this->sql .= " ${type}";
@@ -244,9 +269,9 @@ class LogicalOperator {
         return $this;
     }
 
-    private function _exists($callback, $type = null): QueryBuilder
+    private function addExistsOperator($callback, $type = null): Statement
     {
-        if(!Util::contains('WHERE', $this->sql)) {
+        if (!Util::contains('WHERE', $this->sql)) {
             $this->sql .= ' WHERE';
         }
 
@@ -258,29 +283,22 @@ class LogicalOperator {
         return $this;
     }
 
-    /**
-     * Adiciona a cláusula 'exists(subquery)' à instrução SQL.
-     *
-     * @param callable $callback - função que será processada como uma
-     * subquery
-     * 
-     * @return QueryBuilder
-     */
-    public function exists($callback): QueryBuilder
-    {
-        return $this->_exists($callback);
-    }
+    private function chainExpr(
+        $colOrSubexpression = null,
+        string $op = null,
+        $valueOrSubquery = null,
+        string $typeExpr
+    ): Statement {
+        $this->sql .= " $typeExpr";
 
-    /**
-     * Adiciona a cláusula 'not exists(subquery)' à instrução SQL.
-     *
-     * @param callable $callback - função que será processada como uma
-     * subquery
-     * 
-     * @return QueryBuilder
-     */
-    public function notExists($callback): QueryBuilder
-    {
-        return $this->_exists($callback, 'NOT');
+        if (is_string($colOrSubexpression) && !empty($colOrSubexpression)) {
+            $this->sql .= " $colOrSubexpression";
+        } else if (is_callable($colOrSubexpression)) {
+            $this->sql .= ' (' . $this->createSubquery($colOrSubexpression) . ')';
+        } else if (!is_null($op) && !is_null($valueOrSubquery)) {
+            $this->createExpr($op, $valueOrSubquery);
+        }
+
+        return $this;
     }
 }

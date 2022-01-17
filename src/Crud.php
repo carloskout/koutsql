@@ -1,7 +1,7 @@
 <?php 
 namespace Kout;
 
-class Crud {
+trait Crud {
     /**
      * Instrução INSERT.
      *

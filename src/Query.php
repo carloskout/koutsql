@@ -3,15 +3,8 @@ namespace Kout;
 
 trait Query {
 
-    /**
-     * Recupera dados
-     * @param mixed $table - Espera-se que seja passado o nome da tabela
-     * tanto como string quanto como array. 
-     * 
-     * @param array $cols - Lista de colunas a serem recuperadas.
-     * @return QueryBuilder
-     */
-    public function get($table, array $cols = []): QueryBuilder
+    
+    public function get($table, array $cols = []): Statement
     {
         $this->reset();
         $cols = empty($cols) ? '*' : Util::convertArrayToString($cols);
@@ -26,9 +19,9 @@ trait Query {
      * @param integer $number - Valor inteiro que limita
      * o numero de registros retornados pela query.
      * 
-     * @return QueryBuilder
+     * @return Statement
      */
-    public function limit(int $limit, int $offset = 0): QueryBuilder
+    public function limit(int $limit, int $offset = 0): Statement
     {
         $this->sql .= " LIMIT";
 
@@ -44,22 +37,22 @@ trait Query {
      * Adicona a cláusula 'order by field asc' à instrução SQL.
      *
      * @param string $field - O campo a ser ordenado
-     * @return QueryBuilder
+     * @return Statement
      */
-    public function orderByAsc(...$fields): QueryBuilder
+    public function orderByAsc(...$fields): Statement
     {
-        return $this->_orderBy($fields, 'ASC');
+        return $this->addOrderByClause($fields, 'ASC');
     }
 
     /**
      * Adicona a cláusula 'order by field desc' à instrução SQL.
      *
      * @param string $field - O campo a ser ordenado
-     * @return QueryBuilder
+     * @return Statement
      */
-    public function orderByDesc(...$fields): QueryBuilder
+    public function orderByDesc(...$fields): Statement
     {
-        return $this->_orderBy($fields, 'DESC');
+        return $this->addOrderByClause($fields, 'DESC');
     }
 
     
@@ -69,9 +62,9 @@ trait Query {
      * instrução SQL.
      *
      * @param string $tableName
-     * @return QueryBuilder
+     * @return Statement
      */
-    public function innerJoin(string $table, string $col1, string $col2): QueryBuilder
+    public function innerJoin(string $table, string $col1, string $col2): Statement
     {
         $this->sql .= " INNER JOIN $table ON $col1 = $col2";
         return $this;
@@ -82,7 +75,7 @@ trait Query {
      * instrução SQL.
      *
      * @param string $tableName
-     * @return QueryBuilder
+     * @return Statement
      */
     public function leftJoin(string $table, string $col1, string $col2)
     {
@@ -95,7 +88,7 @@ trait Query {
      * instrução SQL.
      *
      * @param string $tableName
-     * @return QueryBuilder
+     * @return Statement
      */
     public function rightJoin(string $table, string $col1, string $col2)
     {
@@ -111,9 +104,9 @@ trait Query {
      * especificados nas cláusulas 'on' e 'using'.
      *
      * @param string $tableName
-     * @return QueryBuilder
+     * @return Statement
      */
-    public function crossJoin(string $table, string $col1, string $col2): QueryBuilder
+    public function crossJoin(string $table, string $col1, string $col2): Statement
     {
         $this->sql .= " CROSS JOIN $table ON $col1 = $col2";
         return $this;
@@ -125,9 +118,9 @@ trait Query {
      * @param varArgs ...$fields - Nomes do campos para
      * agrupamentos
      * 
-     * @return QueryBuilder
+     * @return Statement
      */
-    public function groupBy(...$fields): QueryBuilder
+    public function groupBy(...$fields): Statement
     {
         $this->sql .= " GROUP BY " . Util::convertArrayToString(Util::varArgs($fields));
         return $this;
@@ -139,9 +132,9 @@ trait Query {
      * @param varArgs ...$fields - Nomes do campos para
      * agrupamentos
      * 
-     * @return QueryBuilder
+     * @return Statement
      */
-    public function groupByWithRollup(...$fields): QueryBuilder
+    public function groupByWithRollup(...$fields): Statement
     {
         $this->sql .= " GROUP BY " . Util::convertArrayToString(Util::varArgs($fields));
         $this->sql .= " WITH ROLLUP";
@@ -152,42 +145,42 @@ trait Query {
      * Adiciona a cláusula 'union (subquery)' à instrução SQL.
      *
      * @param callabe $callback - subquery
-     * @return QueryBuilder
+     * @return Statement
      */
-    public function union($callback): QueryBuilder
+    public function union($callback): Statement
     {
-        return $this->_union($callback);
+        return $this->addUnionClause($callback);
     }
 
     /**
      * Adiciona a cláusula 'union all (subquery)' à instrução SQL.
      *
      * @param callabe $callback - subquery
-     * @return QueryBuilder
+     * @return Statement
      */
-    public function unionAll($callback): QueryBuilder
+    public function unionAll($callback): Statement
     {
-        return $this->_union($callback, 'ALL');
+        return $this->addUnionClause($callback, 'ALL');
     }
 
     /**
      * Adiciona a cláusula 'union distinct (subquery)' à instrução SQL.
      *
      * @param callabe $callback - subquery
-     * @return QueryBuilder
+     * @return Statement
      */
-    public function unionDistinct($callback): QueryBuilder
+    public function unionDistinct($callback): Statement
     {
-        return $this->_union($callback, 'DISTINCT');
+        return $this->addUnionClause($callback, 'DISTINCT');
     }
 
     /**
      * Adiciona a cláusula 'having' à instrução SQL.
      *
      * @param string $field
-     * @return QueryBuilder
+     * @return Statement
      */
-    public function having(string $field): QueryBuilder
+    public function having(string $field): Statement
     {
         $this->sql .= " HAVING ${field}";
         return $this;
@@ -213,16 +206,26 @@ trait Query {
      * @param [type] ...$fields - Nomes do campos que serão
      * inseridos na tabela.
      * 
-     * @return QueryBuilder
+     * @return Statement
      */
-    /*public function distinct(...$fields): QueryBuilder
+    /*public function distinct(...$fields): Statement
     {
         $this->reset();
         $this->sql = "SELECT DISTINCT " . Util::convertArrayToString(Util::varArgs($fields));
         return $this;
     }*/
 
-    private function _orderBy(array $fields, $type): QueryBuilder
+    private function createSubquery($callback): string
+    {
+        if (!is_callable($callback)) {
+            throw new \Exception("Callback ${callback} inválido.");
+        }
+        $subquery = call_user_func($callback, new $this); // return Statement
+        $this->data = array_merge($this->data, $subquery->data);
+        return trim($subquery->sql());
+    }
+
+    private function addOrderByClause(array $fields, $type): Statement
     {
         $fields = Util::varArgs($fields);
         if (count($fields) == 1) {// um campo para ordenar
@@ -238,7 +241,7 @@ trait Query {
         return $this;
     }
 
-    private function _union($callback, string $type = null): QueryBuilder
+    private function addUnionClause($callback, string $type = null): Statement
     {
         $union = "UNION";
 

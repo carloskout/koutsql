@@ -73,16 +73,6 @@ class Util
         return is_array($args[0]) ? $args[0] : $args;
     }
 
-    private static function createSubquery($callback): string
-    {
-        if (!is_callable($callback)) {
-            throw new \Exception("Callback ${callback} inválido.");
-        }
-        $subquery = call_user_func($callback, new $this); // return QueryBuilder
-        $this->data = array_merge($this->data, $subquery->data);
-        return trim($subquery->sql());
-    }
-
     /*recebe um array que pode conter tanto placeholders
     quanto valores literais. Se for placeholder, entao
     será retornado uma lista separada por virgulas
@@ -95,10 +85,10 @@ class Util
     EX. valores entrada: 'carlos', 'Masculino'
      Lista gerada: ?, ?
     */
-    private static function createMaskPlaceholders(array $values): string
+    public static function createMaskPlaceholders(array $values): string
     {
         $values = array_map(function ($value) {
-            if (!$this->containsPlaceholders($value)) {
+            if (self::containsPlaceholders($value)) {
                 return '?';
             }
             return $value;
@@ -107,10 +97,10 @@ class Util
         return implode(", ", $values);
     }
 
-    private static function createNamedPlaceholders(array $values): string
+    public static function createNamedPlaceholders(array $values): string
     {
         $values = array_map(function ($value) {
-            if (!$this->containsPlaceholders($value)) {
+            if (self::containsPlaceholders($value)) {
                 return ":$value";
             }
             return $value;
@@ -119,7 +109,7 @@ class Util
         return implode(", ", $values);
     }
 
-    private function createSetColumns(array $values): string
+    public function createSetColumns(array $values): string
     {
         $values = array_map(function ($value) {
             return "$value = :$value";
@@ -135,7 +125,7 @@ class Util
      * @param string $value
      * @return boolean
      */
-    private static function containsPlaceholders(string $value): bool
+    public static function containsPlaceholders(string $value): bool
     {
         if (
             preg_match('/:[a-z0-9]{1,}(_\w+)?/i', $value)
@@ -146,7 +136,7 @@ class Util
         return false;
     }
 
-    private static function prepareInputData(array $data): array
+    public static function prepareSQLInputData(array $data): array
     {
         $keys = array_keys($data);
 

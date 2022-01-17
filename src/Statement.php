@@ -1,7 +1,19 @@
 <?php 
 namespace Kout;
 
+use Kout\ResultSet;
+use PDOStatement;
+
 abstract class Statement {
+
+    use 
+    Query,
+    Crud,
+    AggregateFn,
+    Filter, 
+    LogicalOperator, 
+    RelationalOperator,
+    ResultSet;
 
      /** @var \PDO */
      private $conn;
@@ -42,9 +54,9 @@ abstract class Statement {
     private function exec(?array $data = null): ?PDOStatement
     {
         if (!empty($this->data)) {
-            $data = $this->prepareInputData($this->data);
+            $data = Util::prepareSQLInputData($this->data);
         } else if (!empty($data)) {
-            $data = $this->prepareInputData($data);
+            $data = Util::prepareSQLInputData($data);
         }
 
         try {
@@ -83,4 +95,5 @@ abstract class Statement {
         $this->cols = [];
         $this->data = [];
     }
+
 }

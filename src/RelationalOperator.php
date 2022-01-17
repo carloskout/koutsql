@@ -1,66 +1,66 @@
 <?php
 namespace Kout;
 
-class RelationalOperator {
+trait RelationalOperator {
 
-    public function eqValue($value = null): QueryBuilder
+    public function eqValue($value = null): Statement
     {
-        return $this->addRelationalOperator(Util::getLastWord($this->sql), '=', $value);
+        return $this->addRelationalOperator('=', $value);
     }
 
-    public function eqColumn(string $column): QueryBuilder
+    public function eqColumn(string $column): Statement
     {
-        return $this->addRelationalOperator(null, '=', "*$column");
+        return $this->addRelationalOperator('=', "*$column");
     }
 
-    public function neValue($value = null): QueryBuilder
+    public function neValue($value = null): Statement
     {
-        return $this->addRelationalOperator($value, '!=');
+        return $this->addRelationalOperator('!=', $value);
     }
 
-    public function neColumn(string $column): QueryBuilder
+    public function neColumn(string $column): Statement
     {
-        return $this->addRelationalOperator('*' . $column, '!=');
+        return $this->addRelationalOperator('!=', '*' . $column);
     }
 
-    public function ltValue($value = null): QueryBuilder
+    public function ltValue($value = null): Statement
     {
-        return $this->addRelationalOperator($value, '<');
+        return $this->addRelationalOperator('<', $value);
     }
 
-    public function ltColumn(string $column): QueryBuilder
+    public function ltColumn(string $column): Statement
     {
-        return $this->addRelationalOperator('*' . $column, '<');
+        return $this->addRelationalOperator('<', '*' . $column);
     }
 
-    public function gtValue($value = null): QueryBuilder
+    public function gtValue($value = null): Statement
     {
-        return $this->addRelationalOperator($value, '>');
+        return $this->addRelationalOperator('>', $value);
     }
 
-    public function gtColumn(string $column): QueryBuilder
+    public function gtColumn(string $column): Statement
     {
-        return $this->addRelationalOperator('*' . $column, '>');
+        return $this->addRelationalOperator('>', '*' . $column);
     }
 
-    public function leValue($value = null): QueryBuilder
+    public function leValue($value = null): Statement
     {
-        return $this->addRelationalOperator($value, '<=');
+        return $this->addRelationalOperator('<=', $value);
     }
 
-    public function leColumn(string $column): QueryBuilder
+    public function leColumn(string $column): Statement
     {
-        return $this->addRelationalOperator('*' . $column, '<=');
+        return $this->addRelationalOperator('<=', '*' . $column);
     }
 
-    public function geValue($value = null): QueryBuilder
+    public function geValue($value = null): Statement
     {
-        return $this->addRelationalOperator($value, '>=');
+        return $this->addRelationalOperator('>=', $value);
     }
 
-    public function geColumn(string $column): QueryBuilder
+    public function geColumn(string $column): Statement
     {
-        return $this->addRelationalOperator('*' . $column, '>=');
+        return $this->addRelationalOperator('>=', '*' . $column);
     }
 
     /**
@@ -74,34 +74,31 @@ class RelationalOperator {
      * (=, !=, <, >, >=, <=)
      * @return self
      */
-    private function addRelationalOperator(?string $col, string $op, $valueOrSubquery): QueryBuilder
+    private function addRelationalOperator(string $op, $value): Statement
     {
-        if (!$valueOrSubquery) {
+        if (!$value) {
             $this->sql .= " " . strtoupper($op);
             return $this;
         }
 
         // Se o valor for uma subquery
-        if (is_callable($valueOrSubquery)) {
-            $this->sql .= " $op (" . $this->createSubquery($valueOrSubquery) . ")";
+        if (is_callable($value)) {
+            $this->sql .= " $op (" . $this->createSubquery($value) . ")";
         } 
         //Se o valor for um placeholder
-        else if ($this->containsPlaceholders($valueOrSubquery)) {
-            $this->sql .= " $op ${valueOrSubquery}";
+        else if (Util::containsPlaceholders($value)) {
+            $this->sql .= " $op $value";
         } 
         //Se o valor for um campo de tabela
-        else if (Util::startsWith('*', $valueOrSubquery)) {
-            $this->sql .= " $op " . str_replace('*', '', $valueOrSubquery);
+        else if (Util::startsWith('*', $value)) {
+            $this->sql .= " $op " . str_replace('*', '', $value);
         } 
         // Senão É um valor literal
         else {
-            if(is_null($col)) {
-                $this->sql .= " $op :$col";
-            } else {
-                $this->sql .= " $col $op :$col";
-            }
-            $this->addData($valueOrSubquery);
+            $this->sql .= " $op ?";
+            $this->addData($value);
         }
+
         return $this;
     }
 

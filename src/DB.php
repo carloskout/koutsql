@@ -1,7 +1,7 @@
 <?php
 namespace Kout;
 
-final class DBConfig {
+final class DB {
 
     private function __construct()
     {

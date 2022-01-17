@@ -1,7 +1,7 @@
 <?php 
 namespace Kout;
 
-class Filter {
+trait Filter {
     /**
      * Adiciona cláusula where à instrução SQL.
      * 
@@ -16,31 +16,44 @@ class Filter {
     public function filter(
         string $col,
         string $op = null,
-        $valueOrSubquery = null
-    ): QueryBuilder {
+        $value = null
+    ): Statement {
+
         $this->sql .= " WHERE $col";
-        if (!empty($op) && !empty($valueOrSubquery)) {
+
+        if(is_null($op) && is_null($value)) {
+            return $this;
+        }
+
+        return $this->createExpr($op, $value);
+    }
+
+    private function createExpr(string $op, $value) {
+        if (!empty($op) && !empty($value)) {
+            
             if($op == '^' || $op == '.' || $op == '$') { // Like operator
-                $this->addLikeOperator($valueOrSubquery, $op);
-            } else if($op == 'in' || $op == 'not in') {
-                $this->_in($valueOrSubquery, $op);
-            } else {
-                $this->addRelationalOperator($col, $op, $valueOrSubquery);
+                return $this->addLikeOperator($value, $op);
+            } 
+            
+            else if($op == 'in' || $op == 'not in') {
+                return $this->addInOperator($value, $op);
+            } 
+            
+            else {
+                return $this->addRelationalOperator($op, $value);
             }
         }
-        return $this;
     }
 
     public function subexpr(
         string $col,
         string $op = null,
         $valueOrSubquery = null
-    ): QueryBuilder {
+    ): Statement {
         $this->sql .= " $col";
-        if (!empty($op) && !empty($valueOrSubquery)) {
-            $this->addRelationalOperator($col, $op, $valueOrSubquery);
+        if (!is_null($op) && !is_null($valueOrSubquery)) {
+            return $this->createExpr($op, $valueOrSubquery);
         }
-        return $this;
     }
 
 }

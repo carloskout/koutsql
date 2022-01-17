@@ -1,64 +1,61 @@
 <?php 
 namespace Kout;
 
-class AggregateFn {
+trait AggregateFn {
     
     /**
      * Adiciona a função agregação min() à instrução SQL.
      *
      * @param string $field
-     * @return QueryBuilder
+     * @return Statement
      */
-    public function min(string $col): QueryBuilder {
-        $this->_fn('MIN', $col);
-        return $this;
+    public function min(string $col): Statement {
+        return $this->processDBFunction('MIN', $col);
     }
 
     /**
      * Adiciona a função agregação max() à instrução SQL.
      *
      * @param string $field
-     * @return QueryBuilder
+     * @return Statement
      */
-    public function max(string $col): QueryBuilder {
-        $this->_fn('MAX', $col);
-        return $this;
+    public function max(string $col): Statement {
+        return $this->processDBFunction('MAX', $col);
     }
 
     /**
      * Adiciona a função agregação count() à instrução SQL.
      * @param string $field
-     * @return QueryBuilder
+     * @return Statement
      */
-    public function count(string $col): QueryBuilder
+    public function count(string $col): Statement
     {
-        $this->_fn('COUNT', $col);
-        return $this;
+        return $this->processDBFunction('COUNT', $col);
     }
 
     /**
      * Adiciona a função agregação sum() à instrução SQL.
      *
      * @param string $field
-     * @return QueryBuilder
+     * @return Statement
      */
-    public function sum(string $col): QueryBuilder {
-        $this->_fn('SUM', $col);
-        return $this;
+    public function sum(string $col): Statement {
+        return $this->processDBFunction('SUM', $col);
     }
 
     /**
      * Adiciona a função agregação avg() à instrução SQL.
      *
      * @param string $field
-     * @return QueryBuilder
+     * @return Statement
      */
-    public function avg(string $col): QueryBuilder {
-        $this->_fn('AVG', $col);
-        return $this;
+    public function avg(string $col): Statement {
+        return $this->processDBFunction('AVG', $col);
     }
 
-    private function _fn(string $fn, ...$params) {
+    private function processDBFunction(string $fn, ...$params): Statement
+    {
+        $params = Util::varArgs($params);
         $params = Util::convertArrayToString($params);
         $pos = strpos($this->sql, ' FROM');
         if($this->sql[$pos -1] === '*') {
@@ -66,40 +63,14 @@ class AggregateFn {
         } else {
             $this->sql = substr_replace($this->sql, ", $fn($params) ", $pos, 1);
         }
+        return $this;
     }
 
     // definicao de metodos magicos para chamada de funcoes do banco de dados
-    /*
+    
     public function __call($name, $args)
     {
-        return self::fn($name, $args, $this);
+        return self::processDBFunction($name, $args);
     }
-
-    public static function __callStatic($name, $args)
-    {
-        return self::fn($name, $args, null);
-    }*/
-
-    /*private static function fn(string $fnName, array $fields, $_this): QueryBuilder 
-    {
-
-        //verifica se o nome do método inicia com o prefixo 'fn'
-        if(!Util::startsWith('fn', $fnName))
-            throw new \Exception($fnName . ' Não é uma função de Banco de Dados válida');
-
-        $fnName = str_replace('fn', '', $fnName);
-        $fnName = Util::underlineConverter($fnName);
-
-        $fields = Util::varArgs($fields);
-
-        if(!$_this) {
-            $sql = "SELECT $fnName(" . Util::convertArrayToString($fields) . ")";
-            return new QueryBuilder($sql);
-        } else {
-            $_this->sql .= ", $fnName(". Util::convertArrayToString($fields) . ")";
-            return $_this;
-        } 
-    }*/
-
 
 }
