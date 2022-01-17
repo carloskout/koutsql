@@ -1,23 +1,9 @@
-<?php 
+<?php
+
 namespace Kout;
 
-trait Crud {
-    /**
-     * Instrução INSERT.
-     *
-     * @param [type] ...$fields - Nomes do campos que serão
-     * inseridos na tabela.
-     * @return QueryBuilder
-     */
-    private function persist(string $table, array $data): int
-    {
-        $keys = array_keys($data);
-        $cols = Util::convertArrayToString($keys);
-        $values = $this->createNamedPlaceholders($keys);
-        $this->sql = "INSERT INTO $table ($cols) VALUES ($values)";
-        $this->exec($data);
-        return $this->conn->lastInsertId();
-    }
+trait Crud
+{
 
     /**
      * Atualiza ou insere um novo registro
@@ -33,39 +19,54 @@ trait Crud {
      * -> um QueryBuilder $q->filter('id', '=', 12)
      * @return QueryBuilder
      */
-    public function put(string $table, array $data, $filter = null): int
+    public function put(string $table, array $data, $filter = null): Statement
     {
-        if(empty($data) || empty($table)) {
+        if (empty($data) || empty($table)) {
             throw new \Exception('Parâmetro inválido! O campo $table ou $data não podem ser vazio.');
         }
 
         $this->reset();
 
-        if(is_null($filter)) {
+        if (is_null($filter)) {
             return $this->persist($table, $data);
         } else {
             return $this->update($table, $data, $filter);
         }
     }
 
-    private function update(string $table, array $data, ...$value): int 
+    /**
+     * Instrução INSERT.
+     *
+     * @param [type] ...$fields - Nomes do campos que serão
+     * inseridos na tabela.
+     * @return QueryBuilder
+     */
+    private function persist(string $table, array $data): Statement
     {
-        $cols = $this->createSetColumns(array_keys($data));
+        $keys = array_keys($data);
+        $cols = Util::convertArrayToString($keys);
+        $values = Util::createNamedPlaceholders($keys);
+        $this->sql = "INSERT INTO $table ($cols) VALUES ($values)";
+        $this->exec($data);
+        return $this;
+    }
+
+    private function update(string $table, array $data, ...$filter): Statement
+    {
+        $cols = Util::createSetColumns(array_keys($data));
         $this->addData($data);
         $this->sql = "UPDATE $table SET $cols";
 
-        $value = Util::varArgs($value);
-        if(is_callable($value[0])) {
-            $filter = call_user_func($value[0], new $this);
-            $this->sql .= " " . $filter->sql();
-            //$this->addData($filter->)
+        $arg = Util::varArgs($filter);
+        if (is_array($arg) && (count($arg) == 2)) {
+            $this->filter($arg[0], '=', $arg[1]);
         }
 
         var_dump($this->sql());
-        return 1;
+        return $this;;
     }
 
-     /**
+    /**
      * Instrução DELETE.
      *
      * @param string $tableName - Nome da tabela
@@ -77,7 +78,7 @@ trait Crud {
         return new QueryBuilder($sql);
     }*/
 
-    
+
     /**
      * Abre uma transacao, executa a instrução SQL
      * e depois fecha a transacao.

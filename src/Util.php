@@ -100,7 +100,7 @@ class Util
     public static function createNamedPlaceholders(array $values): string
     {
         $values = array_map(function ($value) {
-            if (self::containsPlaceholders($value)) {
+            if (!self::containsPlaceholders($value)) {
                 return ":$value";
             }
             return $value;
@@ -109,7 +109,7 @@ class Util
         return implode(", ", $values);
     }
 
-    public function createSetColumns(array $values): string
+    public static function createSetColumns(array $values): string
     {
         $values = array_map(function ($value) {
             return "$value = :$value";
