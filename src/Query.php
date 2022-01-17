@@ -208,12 +208,12 @@ trait Query {
      * 
      * @return Statement
      */
-    /*public function distinct(...$fields): Statement
+    public function distinct(...$fields): Statement
     {
-        $this->reset();
-        $this->sql = "SELECT DISTINCT " . Util::convertArrayToString(Util::varArgs($fields));
-        return $this;
-    }*/
+        return $this->processDBFuncAndDistinctClause(
+            "DISTINCT " . Util::convertArrayToString(Util::varArgs($fields))
+        );
+    }
 
     private function createSubquery($callback): string
     {
@@ -250,6 +250,17 @@ trait Query {
         }
 
         $this->sql .= " ${union} " . $this->createSubquery($callback);
+        return $this;
+    }
+
+    private function processDBFuncAndDistinctClause(string $include) : Statement
+    {
+        $pos = strpos($this->sql, ' FROM');
+        if($this->sql[$pos -1] === '*') {
+            $this->sql = substr_replace($this->sql, $include, $pos - 1, 1);
+        } else {
+            $this->sql = substr_replace($this->sql, ", $include ", $pos, 1);
+        }
         return $this;
     }
 

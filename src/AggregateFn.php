@@ -57,13 +57,7 @@ trait AggregateFn {
     {
         $params = Util::varArgs($params);
         $params = Util::convertArrayToString($params);
-        $pos = strpos($this->sql, ' FROM');
-        if($this->sql[$pos -1] === '*') {
-            $this->sql = substr_replace($this->sql, "$fn($params)", $pos - 1, 1);
-        } else {
-            $this->sql = substr_replace($this->sql, ", $fn($params) ", $pos, 1);
-        }
-        return $this;
+        return $this->processDBFuncAndDistinctClause("$fn($params)");
     }
 
     // definicao de metodos magicos para chamada de funcoes do banco de dados
