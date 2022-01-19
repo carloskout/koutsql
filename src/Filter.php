@@ -1,7 +1,9 @@
-<?php 
+<?php
+
 namespace Kout;
 
-trait Filter {
+trait Filter
+{
     /**
      * Adiciona cláusula where à instrução SQL.
      * 
@@ -21,25 +23,34 @@ trait Filter {
 
         $this->sql .= " WHERE $col";
 
-        if(is_null($op) && is_null($value)) {
+        if (is_null($op) && is_null($value)) {
             return $this;
         }
 
         return $this->createExpr($op, $value);
     }
 
-    private function createExpr(string $op, $value) {
+    private function createExpr(string $op, $value)
+    {
         if (!empty($op) && !empty($value)) {
-            
-            if($op == '^' || $op == '.' || $op == '$') { // Like operator
+
+            switch($op) {
+                case '^':
+                case '.':
+                case '$':
+                    
+            }
+
+            if ($op == '^' || $op == '.' || $op == '$') { // Like operator
                 return $this->addLikeOperator($value, $op);
-            } 
-            
-            else if($op == 'in' || $op == 'not in') {
+            } else if ($op == 'in' || $op == 'not in') {
                 return $this->addInOperator($value, $op);
-            } 
-            
-            else {
+            } else if (($op == '|' || $op == '^|')
+                && (is_array($value) && count($value) == 2)
+            ) { //Between operator
+                $type = ($op == '^|') ? 'NOT' : null;
+                return $this->addBetweenOperator($value[0], $value[1], $type);
+            } else {
                 return $this->addRelationalOperator($op, $value);
             }
         }
@@ -55,5 +66,4 @@ trait Filter {
             return $this->createExpr($op, $valueOrSubquery);
         }
     }
-
 }

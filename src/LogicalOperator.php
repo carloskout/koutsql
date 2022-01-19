@@ -208,13 +208,14 @@ trait LogicalOperator
         if (Util::containsPlaceholders($value)) {
             $this->sql .= " LIKE $value";
         } else {
-            $this->sql .= " LIKE ?";
+            $col = Util::getLastWord($this->sql);
+            $this->sql .= " LIKE :$col";
             if ($type == '^') {
-                $this->addData($value . '%');
+                $this->addData([$col => $value . '%']);
             } else if ($type == '.') {
-                $this->addData('%' . $value . '%');
+                $this->addData([$col => '%' . $value . '%']);
             } else {
-                $this->addData('%' . $value);
+                $this->addData([$col => '%' . $value]);
             }
         }
         return $this;
@@ -257,12 +258,14 @@ trait LogicalOperator
             $this->sql .= " ${type}";
         }
 
-        if ($this->containsPlaceholders($low) && $this->containsPlaceholders($high)) {
+        if (Util::containsPlaceholders($low) && Util::containsPlaceholders($high)) {
             $this->sql .= " BETWEEN ${low} AND ${high}";
         } else {
-            $this->sql .= " BETWEEN ? AND ?";
-            $this->addData($low);
-            $this->addData($high);
+            $col1 = 'col_' . Util::increment();
+            $col2 = 'col_' . Util::increment();
+            $this->sql .= " BETWEEN :$col1 AND :$col2";
+            $this->addData([$col1 => $low]);
+            $this->addData([$col2 => $high]);
         }
 
 
@@ -293,11 +296,17 @@ trait LogicalOperator
 
         if (is_string($colOrSubexpression) && !empty($colOrSubexpression)) {
             $this->sql .= " $colOrSubexpression";
-        } else if (is_callable($colOrSubexpression)) {
-            $this->sql .= ' (' . $this->createSubquery($colOrSubexpression) . ')';
-        } else if (!is_null($op) && !is_null($valueOrSubquery)) {
+        } 
+
+        if (!is_null($op) && !is_null($valueOrSubquery)) {
             $this->createExpr($op, $valueOrSubquery);
         }
+        
+        else if (is_callable($colOrSubexpression)) {
+            $this->sql .= ' (' . $this->createSubquery($colOrSubexpression) . ')';
+        } 
+        
+        
 
         return $this;
     }

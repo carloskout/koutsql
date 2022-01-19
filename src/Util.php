@@ -4,6 +4,7 @@ namespace Kout;
 
 class Util
 {
+    private static $i = 0;
 
     public static function startsWith(string $search, string $content): bool
     {
@@ -148,5 +149,10 @@ class Util
             return array_combine($placeholders, array_values($data));
         }
         return $data;
+    }
+
+    public static function increment(): int 
+    {
+        return ++self::$i;
     }
 }

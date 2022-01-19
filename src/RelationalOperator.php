@@ -95,8 +95,11 @@ trait RelationalOperator {
         } 
         // Senão É um valor literal
         else {
-            $this->sql .= " $op ?";
-            $this->addData($value);
+            //$this->sql .= " $op ?";
+            //$this->addData($value);
+            $col = Util::getLastWord($this->sql);
+            $this->sql .= " $op :$col";
+            $this->addData([$col => $value]);
         }
 
         return $this;

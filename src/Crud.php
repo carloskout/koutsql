@@ -19,7 +19,7 @@ trait Crud
      * -> um QueryBuilder $q->filter('id', '=', 12)
      * @return QueryBuilder
      */
-    public function put(string $table, array $data, $filter = null): Statement
+    public function put(string $table, array $data, $filter = null): int
     {
         if (empty($data) || empty($table)) {
             throw new \Exception('Parâmetro inválido! O campo $table ou $data não podem ser vazio.');
@@ -41,17 +41,17 @@ trait Crud
      * inseridos na tabela.
      * @return QueryBuilder
      */
-    private function persist(string $table, array $data): Statement
+    private function persist(string $table, array $data): int
     {
         $keys = array_keys($data);
         $cols = Util::convertArrayToString($keys);
         $values = Util::createNamedPlaceholders($keys);
         $this->sql = "INSERT INTO $table ($cols) VALUES ($values)";
         $this->exec($data);
-        return $this;
+        return $this->conn->lastInsertId() or 0;
     }
 
-    private function update(string $table, array $data, ...$filter): Statement
+    private function update(string $table, array $data, ...$filter): int
     {
         $cols = Util::createSetColumns(array_keys($data));
         $this->addData($data);
@@ -62,8 +62,14 @@ trait Crud
             $this->filter($arg[0], '=', $arg[1]);
         }
 
-        var_dump($this->sql());
-        return $this;;
+        else if(is_callable($arg[0])) {
+            call_user_func($arg[0], $this);
+        }
+
+        if($st = $this->exec()) {
+            return $st->rowCount();
+        }
+        return 0;
     }
 
     /**
