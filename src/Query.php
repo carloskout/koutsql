@@ -180,10 +180,18 @@ trait Query {
      * @param string $field
      * @return Statement
      */
-    public function having(string $field): Statement
+    public function having(
+        string $col,
+        string $op = null,
+        $value = null): Statement
     {
-        $this->sql .= " HAVING ${field}";
-        return $this;
+        $this->sql .= " HAVING $col";
+
+        if (is_null($op) && is_null($value)) {
+            return $this;
+        }
+
+        return $this->createExpr($op, $value);
     }
 
     /**

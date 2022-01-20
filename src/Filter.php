@@ -38,21 +38,38 @@ trait Filter
                 case '^':
                 case '.':
                 case '$':
-                    
+                    $this->addLikeOperator($value, $op);
+                    break;
+                case '->':
+                case '!->':
+                    if(is_array($value) && count($value) > 0) {
+                        $type = ($op == '!->') ? 'NOT' : null;
+                        $this->addInOperator($value, $type);
+                    } else {
+                        throw new \Exception("Intervalo de dados para o operador IN está incorreto. Espera-se que seja passado um array indexado com um ou mais valores");
+                    }
+                    break;
+                case '|':
+                case '^|':
+                    if(is_array($value) && count($value) == 2) {
+                        $type = ($op == '^|') ? 'NOT' : null;
+                        $this->addBetweenOperator($value[0], $value[1], $type);
+                    } else {
+                        throw new \Exception("Intervalo de dados para o operador BETWEEN está incorreto. Espera-se que seja passado um array indexado com dois valores");
+                    }
+                    break;
+                case '=':
+                case '!=':
+                case '>':
+                case '<':
+                case '>=':
+                case '<=':
+                    $this->addRelationalOperator($op, $value);
+                    break;
+                default:
+                    throw new \Exception("Operador '$op' inválido" );
             }
-
-            if ($op == '^' || $op == '.' || $op == '$') { // Like operator
-                return $this->addLikeOperator($value, $op);
-            } else if ($op == 'in' || $op == 'not in') {
-                return $this->addInOperator($value, $op);
-            } else if (($op == '|' || $op == '^|')
-                && (is_array($value) && count($value) == 2)
-            ) { //Between operator
-                $type = ($op == '^|') ? 'NOT' : null;
-                return $this->addBetweenOperator($value[0], $value[1], $type);
-            } else {
-                return $this->addRelationalOperator($op, $value);
-            }
+            return $this;
         }
     }
 

@@ -89,7 +89,7 @@ class Util
     public static function createMaskPlaceholders(array $values): string
     {
         $values = array_map(function ($value) {
-            if (self::containsPlaceholders($value)) {
+            if (!self::containsPlaceholders($value)) {
                 return '?';
             }
             return $value;
@@ -126,15 +126,30 @@ class Util
      * @param string $value
      * @return boolean
      */
-    public static function containsPlaceholders(string $value): bool
+    public static function containsPlaceholders($value): bool
     {
-        if (
-            preg_match('/:[a-z0-9]{1,}(_\w+)?/i', $value)
-            || preg_match('/\?/', $value)
-        ) {
+        $check = function (string $string): bool
+        {
+            if (
+                preg_match('/^:[a-z0-9]{1,}(_\w+)?$/i', $string)
+                || preg_match('/^\?$/', $string)
+            ) {
+                return true;
+            }
+            return false;
+        };
+
+        if(is_array($value)) {
+            foreach($value as $v) {
+                if(!$check($v)) {
+                    return false;
+                }
+            }
             return true;
+        } else if(is_string($value) || is_numeric($value)) {
+            return $check($value);
         }
-        return false;
+        
     }
 
     public static function prepareSQLInputData(array $data): array
@@ -151,8 +166,20 @@ class Util
         return $data;
     }
 
-    public static function increment(): int 
+    private static function increment(): int 
     {
         return ++self::$i;
+    }
+
+    public static function createRandomColumn(int $count = 0)
+    {
+        if($count) {
+            $cols = [];
+            for($i = 0; $i < $count; $i++) {
+                array_push($cols, 'col_' . self::increment());
+            }
+            return $cols;
+        }
+        return 'col_' . self::increment();
     }
 }

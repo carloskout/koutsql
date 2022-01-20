@@ -104,7 +104,7 @@ trait LogicalOperator
      */
     public function in(...$values): Statement
     {
-        return $this->addInOperator($values, 'in');
+        return $this->addInOperator($values);
     }
 
     /**
@@ -116,7 +116,7 @@ trait LogicalOperator
      */
     public function notIn(...$values): Statement
     {
-        return $this->addInOperator($values, 'not in');
+        return $this->addInOperator($values, 'NOT');
     }
 
     /**
@@ -230,7 +230,8 @@ trait LogicalOperator
     private function addInOperator($value, string $type = null): Statement
     {
         $value = is_array($value) ? Util::varArgs($value) : $value;
-        $this->sql .= !is_null($type) ? ' ' . strtoupper($type) : '';
+        $this->sql .= !is_null($type) ? ' ' . $type : '';
+        $this->sql .= ' IN';
 
         // Caso a subquery seja passada pelo método filter('id', 'in', $callback)
         if (is_callable($value)) {
@@ -242,11 +243,16 @@ trait LogicalOperator
             $this->sql .= " (" . $this->createSubquery($value[0]) . ")";
         }
 
+        else if (Util::containsPlaceholders($value)) {
+            $this->sql .= " (" . Util::convertArrayToString($value) . ")";
+        }
+
         // aqui o array de dados pode vir tanto do método filter()
         // quanto dos métodos in() e notin()
         else {
-            $this->sql .= " (" . Util::createMaskPlaceholders($value) . ")";
-            $this->addData($value);
+            $cols = Util::createRandomColumn(count($value));
+            $this->sql .= " (" . Util::createNamedPlaceholders($cols) . ")";
+            $this->addData(array_combine($cols, $value));
         }
 
         return $this;
@@ -261,14 +267,12 @@ trait LogicalOperator
         if (Util::containsPlaceholders($low) && Util::containsPlaceholders($high)) {
             $this->sql .= " BETWEEN ${low} AND ${high}";
         } else {
-            $col1 = 'col_' . Util::increment();
-            $col2 = 'col_' . Util::increment();
+            $col1 = Util::createRandomColumn();
+            $col2 = Util::createRandomColumn();
             $this->sql .= " BETWEEN :$col1 AND :$col2";
             $this->addData([$col1 => $low]);
             $this->addData([$col2 => $high]);
         }
-
-
         return $this;
     }
 
@@ -305,9 +309,6 @@ trait LogicalOperator
         else if (is_callable($colOrSubexpression)) {
             $this->sql .= ' (' . $this->createSubquery($colOrSubexpression) . ')';
         } 
-        
-        
-
         return $this;
     }
 }

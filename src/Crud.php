@@ -96,15 +96,15 @@ trait Crud
     {
         if (!is_callable($callback)) {
             throw new \Exception(
-                'Parâmetro inválido! Esperava-se que um callable
-                fosse passado para o método QueryBuilder::transaction, mas 
-                um ' . gettype($callback) . ' foi passado'
+                'Parâmetro inválido! 
+                Espera-se que o tipo Callable seja passado por parâmetro em vez de um ' 
+                . gettype($callback)
             );
         }
 
-        self::$conn->beginTransaction();
+        $this->conn->beginTransaction();
         $rs = call_user_func($callback);
-        self::$conn->commit();
+        $this->conn->commit();
 
         return $rs;
     }
