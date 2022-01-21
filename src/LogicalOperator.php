@@ -8,9 +8,9 @@ trait LogicalOperator
     /**
      * Adiciona o operador lógico 'and' à instrução SQL.
      *
-     * @param mixed $value1 - Coluna ou callback para subexpressoes
-     * @param string $relOp - Relational Operator
-     * @param mixed $value2 - Valor literal ou callback para subquery
+     * @param mixed $colOrSubexpression - Coluna ou callback para subexpressoes
+     * @param string $op - Tipo de operador. Pode ser lógico ou relacional.
+     * @param mixed $valueOrSubquery - Valor literal ou callback para subquery
      * @return Statement
      */
 
@@ -25,9 +25,9 @@ trait LogicalOperator
     /**
      * Adiciona o operador lógico 'or' à instrução SQL.
      *
-     * @param mixed $value1 - Coluna ou callback para subexpressoes
-     * @param string $relOp - Relational Operator
-     * @param mixed $value2 - Valor literal ou callback para subquery
+     * @param mixed $colOrSubexpression - Coluna ou callback para subexpressoes
+     * @param string $op - Tipo de operador. Pode ser lógico ou relacional.
+     * @param mixed $valueOrSubquery - Valor literal ou callback para subquery
      * @return Statement
      */
     public function or(
@@ -165,9 +165,22 @@ trait LogicalOperator
         return $this->addExistsOperator($callback, 'NOT');
     }
 
+    /**
+     * Função usada para processar as entradas dos métodos 
+     * and() e or().
+     *
+     * @param mixed $valueOrSubexpression - Nome de um coluna ou Callable para criar 
+     * subexpressões.
+     * @param string $op Tipo de operador. Pode ser lógico ou relacional.
+     * @param mixed $valueOrSubquery - Valor literal ou Callable para criar subqueries
+     * @param string $type - Indica qual método está solicitando processamento, método
+     * and() ou or(). Se for este, então deverá ser passado o valor 'OR'. Se for aquele, então 
+     * deverá ser passado o valor 'AND';
+     * @return Statement
+     */
     private function addLogicalOperator(
         $valueOrSubexpression = null,
-        ?string $relOperator = null,
+        string $op = null,
         $valueOrSubquery = null,
         string $type
     ): Statement {
@@ -181,11 +194,11 @@ trait LogicalOperator
         // Se for uma expressao que tem comparação
         else if (
             is_string($valueOrSubexpression) &&
-            !empty($relOperator) &&
+            !empty($op) &&
             !empty($valueOrSubquery)
         ) {
             $this->sql .= " $valueOrSubexpression";
-            $this->addRelationalOperator($valueOrSubquery, $relOperator);
+            $this->addRelationalOperator($valueOrSubquery, $op);
         }
         // Se for uma expressao com apenas uma coluna
         else if (!empty($valueOrSubexpression) && is_string($valueOrSubexpression)) {
@@ -224,7 +237,7 @@ trait LogicalOperator
     /**
      * Adiciona operador IN à instrução SQL
      * @param mixed $valuesOrCallback - varArgs, array ou callback
-     * @param string|null $type - 'in' ou 'not in'
+     * @param string $type - 'in' ou 'not in'
      * @return Statement
      */
     private function addInOperator($value, string $type = null): Statement
@@ -258,6 +271,14 @@ trait LogicalOperator
         return $this;
     }
 
+    /**
+     * Adiciona o operador lógico between à instrução SQL.
+     *
+     * @param mixed $low String ou numérico
+     * @param mixed $high String ou numérico
+     * @param string $type - Indica se o operador between será precedido pelo valor 'NOT'.
+     * @return Statement
+     */
     private function addBetweenOperator($low, $high, string $type = null): Statement
     {
         if ($type) {
@@ -276,7 +297,14 @@ trait LogicalOperator
         return $this;
     }
 
-    private function addExistsOperator($callback, $type = null): Statement
+    /**
+     * Adiciona o operador exists na instrução SQL
+     *
+     * @param Callable $callback - Subquery
+     * @param  $type - Indica se o operador exists será precedido pelo valor 'NOT'.
+     * @return Statement
+     */
+    private function addExistsOperator($callback, string $type = null): Statement
     {
         if (!Util::contains('WHERE', $this->sql)) {
             $this->sql .= ' WHERE';
@@ -290,6 +318,15 @@ trait LogicalOperator
         return $this;
     }
 
+    /**
+     * Faz o encadeamento de expressões lógicas
+     *
+     * @param [type] $colOrSubexpression
+     * @param string $op
+     * @param [type] $valueOrSubquery
+     * @param string $typeExpr
+     * @return Statement
+     */
     private function chainExpr(
         $colOrSubexpression = null,
         string $op = null,
