@@ -8,6 +8,13 @@ final class DB {
         
     }
 
+    /**
+     * Cria um objeto MYSQLStatement ou SQLServerStatement de acordo
+     * com driver informado na conexão PDO passado por parâmetro
+     *
+     * @param \PDO $pdo - Conexão com banco de dados
+     * @return Statement
+     */
     public static function getStatement(\PDO $pdo): Statement
     {
         if(!$pdo) {
