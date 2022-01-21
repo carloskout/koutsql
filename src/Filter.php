@@ -30,6 +30,14 @@ trait Filter
         return $this->createExpr($op, $value);
     }
 
+    /**
+     * Analisa o tipo de opeador informado em $op e invoca o método
+     * responsável por processar expressões que usam o operador especificado.
+     *
+     * @param string $op - Tipo de operador. Pode ser lógico ou relacional.
+     * @param mixed $value - Valor literal ou Callable
+     * @return void
+     */
     private function createExpr(string $op, $value)
     {
         if (!empty($op) && !empty($value)) {
@@ -73,6 +81,15 @@ trait Filter
         }
     }
 
+    /**
+     * Esse método é usado para criar subexpressões dentro de callback passados
+     * para os métodos and() e or().
+     *
+     * @param string $col - Nome da colunas
+     * @param string|null $op - Tipo de operador. Pode ser lógico ou relacional.
+     * @param mixed $valueOrSubquery - Valor literal ou Callable
+     * @return Statement
+     */
     public function subexpr(
         string $col,
         string $op = null,
@@ -82,5 +99,6 @@ trait Filter
         if (!is_null($op) && !is_null($valueOrSubquery)) {
             return $this->createExpr($op, $valueOrSubquery);
         }
+        return $this;
     }
 }
