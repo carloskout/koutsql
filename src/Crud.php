@@ -34,6 +34,37 @@ trait Crud
         }
     }
 
+    public function remove(string $table, ...$filter): int
+    {
+        $this->reset();
+        $this->sql .= "DELETE FROM $table";
+        return $this->crudFilter($filter);
+    }
+
+    /**
+     * Abre uma transacao, executa a instrução SQL
+     * e depois fecha a transacao.
+     *
+     * @param [type] $callback
+     * @return void
+     */
+    public function transaction($callback)
+    {
+        if (!is_callable($callback)) {
+            throw new \Exception(
+                'Parâmetro inválido! 
+                Espera-se que o tipo Callable seja passado por parâmetro em vez de um ' 
+                . gettype($callback)
+            );
+        }
+
+        $this->conn->beginTransaction();
+        $rs = call_user_func($callback, new $this($this->conn));
+        $this->conn->commit();
+
+        return $rs;
+    }
+
     /**
      * Instrução INSERT.
      *
@@ -56,7 +87,11 @@ trait Crud
         $cols = Util::createSetColumns(array_keys($data));
         $this->addData($data);
         $this->sql = "UPDATE $table SET $cols";
+        return $this->crudFilter($filter);
+    }
 
+    private function crudFilter(array $filter): int 
+    {
         $arg = Util::varArgs($filter);
         if (is_array($arg) && (count($arg) == 2)) {
             $this->filter($arg[0], '=', $arg[1]);
@@ -70,42 +105,5 @@ trait Crud
             return $st->rowCount();
         }
         return 0;
-    }
-
-    /**
-     * Instrução DELETE.
-     *
-     * @param string $tableName - Nome da tabela
-     * @return QueryBuilder
-     */
-    /*public static function delete(string $tableName): QueryBuilder
-    {
-        $sql = "DELETE FROM ${tableName}";
-        return new QueryBuilder($sql);
-    }*/
-
-
-    /**
-     * Abre uma transacao, executa a instrução SQL
-     * e depois fecha a transacao.
-     *
-     * @param [type] $callback
-     * @return void
-     */
-    public function transaction($callback)
-    {
-        if (!is_callable($callback)) {
-            throw new \Exception(
-                'Parâmetro inválido! 
-                Espera-se que o tipo Callable seja passado por parâmetro em vez de um ' 
-                . gettype($callback)
-            );
-        }
-
-        $this->conn->beginTransaction();
-        $rs = call_user_func($callback);
-        $this->conn->commit();
-
-        return $rs;
     }
 }
