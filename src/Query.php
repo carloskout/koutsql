@@ -3,7 +3,13 @@ namespace Kout;
 
 trait Query {
 
-    
+    /**
+     *
+     *
+     * @param [type] $table
+     * @param array $cols
+     * @return Statement
+     */
     public function get($table, array $cols = []): Statement
     {
         $this->reset();
