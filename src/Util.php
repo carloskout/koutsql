@@ -187,11 +187,4 @@ class Util
     {
         return $pos = strpos($content, $serach);
     }
-
-    public static function getSelectList(string $query) 
-    {
-        $match = [];
-        preg_match('/@table\((.+)\)@/', $query, $match);
-        $match[1];
-    }
 }

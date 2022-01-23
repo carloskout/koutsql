@@ -15,7 +15,7 @@ trait Query {
         $this->reset();
         $cols = empty($cols) ? '*' : Util::convertArrayToString($cols);
         $table = is_string($table) ? $table : Util::convertArrayToString($table);
-        $this->sql = "SELECT @sel_list($cols)@ FROM @table($table)@";
+        $this->sql = "SELECT $cols FROM $table";
         return $this;
     }
 
