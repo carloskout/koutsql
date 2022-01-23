@@ -15,7 +15,7 @@ trait Query {
         $this->reset();
         $cols = empty($cols) ? '*' : Util::convertArrayToString($cols);
         $table = is_string($table) ? $table : Util::convertArrayToString($table);
-        $this->sql = "SELECT $cols FROM $table";
+        $this->sql = "SELECT @sel_list($cols)@ FROM @table($table)@";
         return $this;
     }
 
@@ -115,6 +115,12 @@ trait Query {
     public function crossJoin(string $table, string $col1, string $col2): Statement
     {
         $this->sql .= " CROSS JOIN $table ON $col1 = $col2";
+        return $this;
+    }
+
+    public function fullJoin(string $table, string $col1, string $col2): Statement
+    {
+        $this->sql .= " FULL JOIN $table ON $col1 = $col2";
         return $this;
     }
 
@@ -269,7 +275,7 @@ trait Query {
 
     private function processDBFuncAndDistinctClause(string $include) : Statement
     {
-        $pos = strpos($this->sql, ' FROM');
+        $pos = Util::getPos(' FROM', $this->sql);
         if($this->sql[$pos -1] === '*') {
             $this->sql = substr_replace($this->sql, $include, $pos - 1, 1);
         } else {

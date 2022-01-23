@@ -182,4 +182,16 @@ class Util
         }
         return 'col_' . self::increment();
     }
+
+    public static function getPos(string $serach, string $content): int 
+    {
+        return $pos = strpos($content, $serach);
+    }
+
+    public static function getSelectList(string $query) 
+    {
+        $match = [];
+        preg_match('/@table\((.+)\)@/', $query, $match);
+        $match[1];
+    }
 }

@@ -16,14 +16,14 @@ abstract class Statement {
     ResultSet;
 
      /** @var \PDO */
-     private $conn;
+     protected $conn;
 
      /**
       * Buffer de Instruções SQL
       *
       * @var string
       */
-     private $sql;
+     protected $sql;
 
      /**
      * Campos de entrada para instrução SQL.
@@ -32,9 +32,9 @@ abstract class Statement {
      *
      * @var array
      */
-    private $cols;
+    protected $cols;
 
-    private $data = array();
+    protected $data = array();
 
      public function __construct(\PDO $pdo = null)
     {
