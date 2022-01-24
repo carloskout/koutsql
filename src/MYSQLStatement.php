@@ -15,5 +15,23 @@ class MYSQLStatement extends Statement {
         $this->sql .= " FULL JOIN $table ON $col1 = $col2";
         return $this;
     }
+
+    public function offset(int $value): Statement
+    {
+        
+        Util::push("LIMIT $value,", $this->orderBy);
+        return $this;
+    }
+
+    public function fetch(int $value): Statement
+    {
+        if(Util::contains('LIMIT', $this->sql())) { //JA EXISTE O OFFSET
+            Util::push("$value", $this->orderBy);
+        } else {
+            Util::push("LIMIT $value", $this->orderBy);
+        }
+        
+        return $this;
+    }
     
 }

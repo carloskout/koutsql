@@ -20,8 +20,8 @@ trait Filter
         string $op = null,
         $value = null
     ): Statement {
-
-        $this->sql .= " WHERE $col";
+        Util::push($col, $this->filter);
+        $this->currentCol = $col;
 
         if (is_null($op) && is_null($value)) {
             return $this;
@@ -50,7 +50,7 @@ trait Filter
                     break;
                 case '->':
                 case '!->':
-                    if(is_array($value) && count($value) > 0) {
+                    if((is_array($value) && count($value) > 0) || is_callable($value) ) {
                         $type = ($op == '!->') ? 'NOT' : null;
                         $this->addInOperator($value, $type);
                     } else {

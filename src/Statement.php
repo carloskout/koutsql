@@ -34,7 +34,20 @@ abstract class Statement {
      */
     protected $cols;
 
-    protected $data = array();
+    protected $data = [];
+
+    //------------------------
+    protected $type;
+    protected const SELECT = 1;
+    protected const UPDATE = 2;
+    protected const DELETE = 3;
+    protected const INSERT = 4;
+
+    protected $table = [];
+    protected $selectList = [];
+    protected $filter = [];
+    protected $orderBy = [];
+    protected $currentCol;
 
      public function __construct(\PDO $pdo = null)
     {
@@ -43,7 +56,39 @@ abstract class Statement {
 
     public function sql(): string
     {
+        $this->createSQLStatement();
         return $this->sql;
+    }
+
+    private function createSQLStatement():void
+    {
+        switch($this->type) {
+            case self::SELECT:
+                $this->createSelectStatement();
+            break;
+            default:
+                $this->createExprStatement();
+        }
+    }
+
+    private function createSelectStatement(): void 
+    {
+        $selectList = Util::convertArrayToString($this->selectList, ', ');
+        $table = Util::convertArrayToString($this->table, ', ');
+        $this->sql = "SELECT $selectList FROM $table";
+
+        if(!empty($this->filter)) {
+            $this->sql .= ' WHERE ' . Util::convertArrayToString($this->filter);
+        }
+
+        if(!empty($this->orderBy)) {
+            $this->sql .= ' ' . Util::convertArrayToString($this->orderBy);
+        }
+    }
+
+    private function createExprStatement(): void 
+    {
+        $this->sql = Util::convertArrayToString($this->filter);
     }
 
     /**
@@ -58,6 +103,8 @@ abstract class Statement {
         } else if (!empty($data)) {
             $data = Util::prepareSQLInputData($data);
         }
+
+        $this->createSQLStatement();
 
         try {
             $statement = $this->conn->prepare($this->sql, [
@@ -94,6 +141,11 @@ abstract class Statement {
         $this->sql = '';
         $this->cols = [];
         $this->data = [];
+        $this->table = [];
+        $this->selectList = [];
+        $this->filter = [];
+        $this->orderBy = [];
+        $this->currentCol = '';
     }
 
 }

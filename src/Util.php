@@ -28,12 +28,6 @@ class Util
         return ($len > 0) ? substr($content, -$len) == $search : true;
     }
 
-    public static function getLastWord(string $string): string 
-    {
-        $words = explode(' ', $string);
-        return $words[count($words) - 1];
-    }
-
     /**
      * Este método adiciona o caracter underline entre cada palavra
      * presente em $subject.
@@ -59,9 +53,9 @@ class Util
      * @param array $param
      * @return string
      */
-    public static function convertArrayToString(array $param): string
+    public static function convertArrayToString(array $param, string $separator = null): string
     {
-        return implode(', ', $param);
+        return implode($separator? $separator : ' ', $param);
     }
 
     /*
@@ -186,5 +180,14 @@ class Util
     public static function getPos(string $serach, string $content): int 
     {
         return $pos = strpos($content, $serach);
+    }
+
+    public static function push($value, array &$array): void
+    {
+        if(is_array($value)) {
+            $array = array_merge($array, $value);
+        } else {
+            array_push($array, $value);
+        }
     }
 }

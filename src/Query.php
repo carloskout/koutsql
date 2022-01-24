@@ -13,29 +13,25 @@ trait Query {
     public function get($table, array $cols = []): Statement
     {
         $this->reset();
-        $cols = empty($cols) ? '*' : Util::convertArrayToString($cols);
-        $table = is_string($table) ? $table : Util::convertArrayToString($table);
-        $this->sql = "SELECT $cols FROM $table";
+        $this->type = Statement::SELECT;
+        Util::push(empty($cols) ? '*' : $cols, $this->selectList);
+        Util::push(is_string($table) ? $table : $table, $this->table);
         return $this;
     }
 
-    /**
-     * Adiciona a cláusula 'limit' à instrução SQL.
-     *
-     * @param integer $number - Valor inteiro que limita
-     * o numero de registros retornados pela query.
-     * 
-     * @return Statement
-     */
-    public function limit(int $limit, int $offset = 0): Statement
+    public function offset(int $value): Statement
     {
-        $this->sql .= " LIMIT";
+        Util::push("OFFSET $value ROWS", $this->orderBy);
+        return $this;
+    }
 
-        if($offset > 0) {
-            $this->sql .= " ${offset},";
+    public function fetch(int $value): Statement
+    {
+        if(Util::contains('OFFSET', $this->sql())) {
+            Util::push("FETCH NEXT $value ROWS ONLY", $this->orderBy);
+        } else {
+            Util::push("OFFSET 0 ROWS FETCH FIRST $value ROWS ONLY", $this->orderBy);
         }
-
-        $this->sql .= " $limit";
         return $this;
     }
 
@@ -241,7 +237,7 @@ trait Query {
             throw new \Exception("Callback ${callback} inválido.");
         }
         $subquery = call_user_func($callback, new $this); // return Statement
-        $this->data = array_merge($this->data, $subquery->data);
+        Util::push(array_merge($this->data, $subquery->data), $this->data);
         return trim($subquery->sql());
     }
 
@@ -249,13 +245,13 @@ trait Query {
     {
         $fields = Util::varArgs($fields);
         if (count($fields) == 1) {// um campo para ordenar
-            if (!Util::contains('ORDER BY', $this->sql)) {
-                $this->sql .= " ORDER BY $fields[0] ${type}";
+            if (!Util::contains('ORDER BY', $this->sql())) {
+                Util::push("ORDER BY $fields[0] ${type}", $this->orderBy);
             } else {
-                $this->sql .= ", $fields[0] ${type}";
+                Util::push(", $fields[0] ${type}", $this->orderBy);
             }
         } else if(count($fields) > 1) {// muitos campos para ordenar
-            $this->sql .= " ORDER BY " . Util::convertArrayToString($fields) . " $type";
+            Util::push("ORDER BY " . Util::convertArrayToString($fields, ', ') . " $type", $this->orderBy);
         }
 
         return $this;

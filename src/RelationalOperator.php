@@ -77,31 +77,28 @@ trait RelationalOperator {
     private function addRelationalOperator(string $op, $value): Statement
     {
         if (!$value) {
-            $this->sql .= " " . strtoupper($op);
+            Util::push($op, $this->filter);
             return $this;
         }
 
         // Se o valor for uma subquery
         if (is_callable($value)) {
-            $this->sql .= " $op (" . $this->createSubquery($value) . ")";
+            Util::push("$op (" . $this->createSubquery($value) . ")", $this->filter);
         } 
         //Se o valor for um placeholder
         else if (Util::containsPlaceholders($value)) {
-            $this->sql .= " $op $value";
+            Util::push("$op $value", $this->filter);
         } 
         //Se o valor for um campo de tabela
         else if (Util::startsWith('*', $value)) {
-            $this->sql .= " $op " . str_replace('*', '', $value);
+            Util::push("$op " . str_replace('*', '', $value), $this->filter);
         } 
         // Senão É um valor literal
         else {
-            //$this->sql .= " $op ?";
-            //$this->addData($value);
-            $col = Util::getLastWord($this->sql);
-            $this->sql .= " $op :$col";
-            $this->addData([$col => $value]);
+            $col = $this->currentCol;
+            Util::push("$op :$col", $this->filter);
+            Util::push([$col => $value], $this->data);
         }
-
         return $this;
     }
 

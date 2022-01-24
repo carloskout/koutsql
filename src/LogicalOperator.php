@@ -125,7 +125,7 @@ trait LogicalOperator
      */
     public function isNull(): Statement
     {
-        $this->sql .= " IS NULL";
+        Util::push("IS NULL", $this->filter);
         return $this;
     }
 
@@ -135,7 +135,7 @@ trait LogicalOperator
      */
     public function isNotNull(): Statement
     {
-        $this->sql .= " IS NOT NULL";
+        Util::push("IS NOT NULL", $this->filter);
         return $this;
     }
 
@@ -166,48 +166,6 @@ trait LogicalOperator
     }
 
     /**
-     * Função usada para processar as entradas dos métodos 
-     * and() e or().
-     *
-     * @param mixed $valueOrSubexpression - Nome de um coluna ou Callable para criar 
-     * subexpressões.
-     * @param string $op Tipo de operador. Pode ser lógico ou relacional.
-     * @param mixed $valueOrSubquery - Valor literal ou Callable para criar subqueries
-     * @param string $type - Indica qual método está solicitando processamento, método
-     * and() ou or(). Se for este, então deverá ser passado o valor 'OR'. Se for aquele, então 
-     * deverá ser passado o valor 'AND';
-     * @return Statement
-     */
-    private function addLogicalOperator(
-        $valueOrSubexpression = null,
-        string $op = null,
-        $valueOrSubquery = null,
-        string $type
-    ): Statement {
-
-        $this->sql .= " $type";
-
-        //Se for uma subexpressao
-        if (is_callable($valueOrSubexpression)) {
-            $this->sql .= " (" . $this->createSubquery($valueOrSubexpression) . ")";
-        }
-        // Se for uma expressao que tem comparação
-        else if (
-            is_string($valueOrSubexpression) &&
-            !empty($op) &&
-            !empty($valueOrSubquery)
-        ) {
-            $this->sql .= " $valueOrSubexpression";
-            $this->addRelationalOperator($valueOrSubquery, $op);
-        }
-        // Se for uma expressao com apenas uma coluna
-        else if (!empty($valueOrSubexpression) && is_string($valueOrSubexpression)) {
-            $this->sql .= " $valueOrSubexpression";
-        }
-        return $this;
-    }
-
-    /**
      * Adiciona operador like à instrução SQL
      *
      * @param string $value - Representa um valor literal ou um
@@ -219,16 +177,16 @@ trait LogicalOperator
     private function addLikeOperator(string $value, string $type): Statement
     {
         if (Util::containsPlaceholders($value)) {
-            $this->sql .= " LIKE $value";
+            Util::push(["LIKE $value"], $this->filter);
         } else {
-            $col = Util::getLastWord($this->sql);
-            $this->sql .= " LIKE :$col";
-            if ($type == '^') {
-                $this->addData([$col => $value . '%']);
-            } else if ($type == '.') {
-                $this->addData([$col => '%' . $value . '%']);
-            } else {
-                $this->addData([$col => '%' . $value]);
+            $col = $this->currentCol;
+            Util::push("LIKE :$col", $this->filter);
+            if ($type == '^') { // starts with
+                Util::push([$col => $value . '%'], $this->data);
+            } else if ($type == '.') { // contains
+                Util::push([$col => '%' . $value . '%'], $this->data);
+            } else { // ends with
+                Util::push([$col => '%' . $value], $this->data);
             }
         }
         return $this;
@@ -243,29 +201,28 @@ trait LogicalOperator
     private function addInOperator($value, string $type = null): Statement
     {
         $value = is_array($value) ? Util::varArgs($value) : $value;
-        $this->sql .= !is_null($type) ? ' ' . $type : '';
-        $this->sql .= ' IN';
+        Util::push(!is_null($type) ? "$type IN" : 'IN', $this->filter);
 
-        // Caso a subquery seja passada pelo método filter('id', 'in', $callback)
+        // Caso a subquery seja passada pelo método filter('id', '->', [$callback])
         if (is_callable($value)) {
-            $this->sql .= " (" . $this->createSubquery($value) . ")";
+            Util::push('(' . $this->createSubquery($value) . ')', $this->filter);
         }
 
         // caso o callback seja passado usando os métodos in(...$varAgs) ou notIn(...$varArgs)
         else if (is_array($value) && is_callable($value[0])) {
-            $this->sql .= " (" . $this->createSubquery($value[0]) . ")";
+            Util::push('(' . $this->createSubquery($value[0]) . ')', $this->filter);
         }
 
         else if (Util::containsPlaceholders($value)) {
-            $this->sql .= " (" . Util::convertArrayToString($value) . ")";
+            Util::push('(' . Util::convertArrayToString($value, ', ') . ')', $this->filter);
         }
 
         // aqui o array de dados pode vir tanto do método filter()
         // quanto dos métodos in() e notin()
         else {
             $cols = Util::createRandomColumn(count($value));
-            $this->sql .= " (" . Util::createNamedPlaceholders($cols) . ")";
-            $this->addData(array_combine($cols, $value));
+            Util::push('(' . Util::createNamedPlaceholders($cols) . ')', $this->filter);
+            Util::push(array_combine($cols, $value), $this->data);
         }
 
         return $this;
@@ -282,17 +239,17 @@ trait LogicalOperator
     private function addBetweenOperator($low, $high, string $type = null): Statement
     {
         if ($type) {
-            $this->sql .= " ${type}";
+            Util::push($type, $this->filter);
         }
 
         if (Util::containsPlaceholders($low) && Util::containsPlaceholders($high)) {
-            $this->sql .= " BETWEEN ${low} AND ${high}";
+            Util::push("BETWEEN ${low} AND ${high}", $this->filter);
         } else {
             $col1 = Util::createRandomColumn();
             $col2 = Util::createRandomColumn();
-            $this->sql .= " BETWEEN :$col1 AND :$col2";
-            $this->addData([$col1 => $low]);
-            $this->addData([$col2 => $high]);
+            Util::push("BETWEEN :$col1 AND :$col2", $this->filter);
+            Util::push([$col1 => $low], $this->data);
+            Util::push([$col2 => $high], $this->data);
         }
         return $this;
     }
@@ -306,15 +263,11 @@ trait LogicalOperator
      */
     private function addExistsOperator($callback, string $type = null): Statement
     {
-        if (!Util::contains('WHERE', $this->sql)) {
-            $this->sql .= ' WHERE';
-        }
-
         if ($type) {
-            $this->sql .= " ${type}";
+            Util::push($type, $this->filter);
         }
 
-        $this->sql .= " EXISTS (" . $this->createSubquery($callback) . ")";
+        Util::push("EXISTS (" . $this->createSubquery($callback) . ")", $this->filter);
         return $this;
     }
 
@@ -333,10 +286,11 @@ trait LogicalOperator
         $valueOrSubquery = null,
         string $typeExpr
     ): Statement {
-        $this->sql .= " $typeExpr";
+        Util::push("$typeExpr", $this->filter);
 
         if (is_string($colOrSubexpression) && !empty($colOrSubexpression)) {
-            $this->sql .= " $colOrSubexpression";
+            Util::push("$colOrSubexpression", $this->filter);
+            $this->currentCol = $colOrSubexpression;
         } 
 
         if (!is_null($op) && !is_null($valueOrSubquery)) {
@@ -344,7 +298,7 @@ trait LogicalOperator
         }
         
         else if (is_callable($colOrSubexpression)) {
-            $this->sql .= ' (' . $this->createSubquery($colOrSubexpression) . ')';
+            Util::push('(' . $this->createSubquery($colOrSubexpression) . ')', $this->filter);
         } 
         return $this;
     }
