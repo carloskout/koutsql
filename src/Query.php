@@ -1,7 +1,9 @@
-<?php 
+<?php
+
 namespace Kout;
 
-trait Query {
+trait Query
+{
 
     /**
      *
@@ -14,23 +16,23 @@ trait Query {
     {
         $this->reset();
         $this->type = Statement::SELECT;
-        Util::push(empty($cols) ? '*' : $cols, $this->selectList);
-        Util::push(is_string($table) ? $table : $table, $this->table);
+        Util::push(empty($cols) ? '*' : $cols, $this->selectListBuffer);
+        Util::push(is_string($table) ? $table : $table, $this->tableBuffer);
         return $this;
     }
 
     public function offset(int $value): Statement
     {
-        Util::push("OFFSET $value ROWS", $this->orderBy);
+        Util::push("OFFSET $value ROWS", $this->orderByBuffer);
         return $this;
     }
 
     public function fetch(int $value): Statement
     {
-        if(Util::contains('OFFSET', $this->sql())) {
-            Util::push("FETCH NEXT $value ROWS ONLY", $this->orderBy);
+        if (Util::contains('OFFSET', $this->sql())) {
+            Util::push("FETCH NEXT $value ROWS ONLY", $this->orderByBuffer);
         } else {
-            Util::push("OFFSET 0 ROWS FETCH FIRST $value ROWS ONLY", $this->orderBy);
+            Util::push("OFFSET 0 ROWS FETCH FIRST $value ROWS ONLY", $this->orderByBuffer);
         }
         return $this;
     }
@@ -57,8 +59,6 @@ trait Query {
         return $this->addOrderByClause($fields, 'DESC');
     }
 
-    
-
     /**
      * Adiciona a cláusula 'inner join table_name' à
      * instrução SQL.
@@ -68,7 +68,7 @@ trait Query {
      */
     public function innerJoin(string $table, string $col1, string $col2): Statement
     {
-        $this->sql .= " INNER JOIN $table ON $col1 = $col2";
+        Util::push("INNER JOIN $table ON $col1 = $col2", $this->joinBuffer);
         return $this;
     }
 
@@ -81,7 +81,7 @@ trait Query {
      */
     public function leftJoin(string $table, string $col1, string $col2)
     {
-        $this->sql .= " LEFT JOIN $table ON $col1 = $col2";
+        Util::push("LEFT JOIN $table ON $col1 = $col2", $this->joinBuffer);
         return $this;
     }
 
@@ -94,7 +94,7 @@ trait Query {
      */
     public function rightJoin(string $table, string $col1, string $col2)
     {
-        $this->sql .= " RIGHT JOIN $table ON $col1 = $col2";
+        Util::push("RIGHT JOIN $table ON $col1 = $col2", $this->joinBuffer);
         return $this;
     }
 
@@ -110,13 +110,13 @@ trait Query {
      */
     public function crossJoin(string $table, string $col1, string $col2): Statement
     {
-        $this->sql .= " CROSS JOIN $table ON $col1 = $col2";
+        Util::push("CROSS JOIN $table ON $col1 = $col2", $this->joinBuffer);
         return $this;
     }
 
     public function fullJoin(string $table, string $col1, string $col2): Statement
     {
-        $this->sql .= " FULL JOIN $table ON $col1 = $col2";
+        Util::push("FULL JOIN $table ON $col1 = $col2", $this->joinBuffer);
         return $this;
     }
 
@@ -130,7 +130,8 @@ trait Query {
      */
     public function groupBy(...$fields): Statement
     {
-        $this->sql .= " GROUP BY " . Util::convertArrayToString(Util::varArgs($fields));
+        Util::push("GROUP BY " . Util::convertArrayToString(Util::varArgs($fields), ', '), 
+        $this->filterBuffer);
         return $this;
     }
 
@@ -144,8 +145,9 @@ trait Query {
      */
     public function groupByWithRollup(...$fields): Statement
     {
-        $this->sql .= " GROUP BY " . Util::convertArrayToString(Util::varArgs($fields));
-        $this->sql .= " WITH ROLLUP";
+        Util::push("GROUP BY " . Util::convertArrayToString(Util::varArgs($fields), ', '), 
+        $this->filterBuffer);
+        Util::push("WITH ROLLUP", $this->filterBuffer);
         return $this;
     }
 
@@ -191,9 +193,10 @@ trait Query {
     public function having(
         string $col,
         string $op = null,
-        $value = null): Statement
-    {
-        $this->sql .= " HAVING $col";
+        $value = null
+    ): Statement {
+        $this->currentCol = $col;
+        Util::push("HAVING $col", $this->filterBuffer);
 
         if (is_null($op) && is_null($value)) {
             return $this;
@@ -213,10 +216,10 @@ trait Query {
     {
         $this->reset();
         $this->sql = $sql;
-        return $this->list($data);
+        return $this->exec($data, true)->fetchAll(\PDO::FETCH_ASSOC);
     }
 
-     /**
+    /**
      * Instrução SELECT DISTINCT.
      *
      * @param [type] ...$fields - Nomes do campos que serão
@@ -226,8 +229,8 @@ trait Query {
      */
     public function distinct(...$fields): Statement
     {
-        return $this->processDBFuncAndDistinctClause(
-            "DISTINCT " . Util::convertArrayToString(Util::varArgs($fields))
+        return $this->addSelectListExpr(
+            "DISTINCT " . Util::convertArrayToString(Util::varArgs($fields), ', ')
         );
     }
 
@@ -237,21 +240,21 @@ trait Query {
             throw new \Exception("Callback ${callback} inválido.");
         }
         $subquery = call_user_func($callback, new $this); // return Statement
-        Util::push(array_merge($this->data, $subquery->data), $this->data);
+        Util::push($subquery->dataBuffer, $this->dataBuffer);
         return trim($subquery->sql());
     }
 
     private function addOrderByClause(array $fields, $type): Statement
     {
         $fields = Util::varArgs($fields);
-        if (count($fields) == 1) {// um campo para ordenar
+        if (count($fields) == 1) { // um campo para ordenar
             if (!Util::contains('ORDER BY', $this->sql())) {
-                Util::push("ORDER BY $fields[0] ${type}", $this->orderBy);
+                Util::push("ORDER BY $fields[0] ${type}", $this->orderByBuffer);
             } else {
-                Util::push(", $fields[0] ${type}", $this->orderBy);
+                Util::push(", $fields[0] ${type}", $this->orderByBuffer);
             }
-        } else if(count($fields) > 1) {// muitos campos para ordenar
-            Util::push("ORDER BY " . Util::convertArrayToString($fields, ', ') . " $type", $this->orderBy);
+        } else if (count($fields) > 1) { // muitos campos para ordenar
+            Util::push("ORDER BY " . Util::convertArrayToString($fields, ', ') . " $type", $this->orderByBuffer);
         }
 
         return $this;
@@ -259,25 +262,23 @@ trait Query {
 
     private function addUnionClause($callback, string $type = null): Statement
     {
-        $union = "UNION";
+        $union = "UNION ";
 
         if ($type) {
-            $union .= " ${type}";
+            $union .= " $type";
         }
 
-        $this->sql .= " ${union} " . $this->createSubquery($callback);
+        Util::push($union . $this->createSubquery($callback), $this->unionBuffer);
         return $this;
     }
 
-    private function processDBFuncAndDistinctClause(string $include) : Statement
+    private function addSelectListExpr(string $expr): Statement
     {
-        $pos = Util::getPos(' FROM', $this->sql);
-        if($this->sql[$pos -1] === '*') {
-            $this->sql = substr_replace($this->sql, $include, $pos - 1, 1);
+        if ($this->selectListBuffer[0] == '*') {
+            $this->selectListBuffer[0] = $expr;
         } else {
-            $this->sql = substr_replace($this->sql, ", $include ", $pos, 1);
+            Util::push($expr, $this->selectListBuffer);
         }
         return $this;
     }
-
 }

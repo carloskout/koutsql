@@ -20,7 +20,7 @@ trait Filter
         string $op = null,
         $value = null
     ): Statement {
-        Util::push($col, $this->filter);
+        Util::push($col, $this->filterBuffer);
         $this->currentCol = $col;
 
         if (is_null($op) && is_null($value)) {
@@ -95,7 +95,8 @@ trait Filter
         string $op = null,
         $valueOrSubquery = null
     ): Statement {
-        $this->sql .= " $col";
+        Util::push($col, $this->filterBuffer);
+        $this->currentCol = $col;
         if (!is_null($op) && !is_null($valueOrSubquery)) {
             return $this->createExpr($op, $valueOrSubquery);
         }

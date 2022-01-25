@@ -34,7 +34,7 @@ abstract class Statement {
      */
     protected $cols;
 
-    protected $data = [];
+    protected $currentCol;
 
     //------------------------
     protected $type;
@@ -43,11 +43,14 @@ abstract class Statement {
     protected const DELETE = 3;
     protected const INSERT = 4;
 
-    protected $table = [];
-    protected $selectList = [];
-    protected $filter = [];
-    protected $orderBy = [];
-    protected $currentCol;
+    protected $dataBuffer = [];
+    protected $tableBuffer = [];
+    protected $selectListBuffer = [];
+    protected $filterBuffer = [];
+    protected $orderByBuffer = [];
+    protected $unionBuffer = [];
+    protected $joinBuffer = [];
+    
 
      public function __construct(\PDO $pdo = null)
     {
@@ -73,22 +76,33 @@ abstract class Statement {
 
     private function createSelectStatement(): void 
     {
-        $selectList = Util::convertArrayToString($this->selectList, ', ');
-        $table = Util::convertArrayToString($this->table, ', ');
+        $selectList = Util::convertArrayToString($this->selectListBuffer, ', ');
+        $table = Util::convertArrayToString($this->tableBuffer, ', ');
         $this->sql = "SELECT $selectList FROM $table";
 
-        if(!empty($this->filter)) {
-            $this->sql .= ' WHERE ' . Util::convertArrayToString($this->filter);
+        $where = ' WHERE ';
+
+        if(!empty($this->joinBuffer)) {
+            $this->sql .= ' ' . Util::convertArrayToString($this->joinBuffer);
+            $where = ' ';
+        } 
+        
+        if(!empty($this->filterBuffer)) {
+            $this->sql .=  $where . Util::convertArrayToString($this->filterBuffer);
         }
 
-        if(!empty($this->orderBy)) {
-            $this->sql .= ' ' . Util::convertArrayToString($this->orderBy);
+        if(!empty($this->orderByBuffer)) {
+            $this->sql .= ' ' . Util::convertArrayToString($this->orderByBuffer);
+        }
+
+        if(!empty($this->unionBuffer)) {
+            $this->sql .= ' ' . Util::convertArrayToString($this->unionBuffer);
         }
     }
 
     private function createExprStatement(): void 
     {
-        $this->sql = Util::convertArrayToString($this->filter);
+        $this->sql = Util::convertArrayToString($this->filterBuffer);
     }
 
     /**
@@ -96,15 +110,17 @@ abstract class Statement {
      *
      * @return PDOStatement
      */
-    private function exec(?array $data = null): ?PDOStatement
+    private function exec(?array $data = null, bool $isNative = false): ?PDOStatement
     {
-        if (!empty($this->data)) {
-            $data = Util::prepareSQLInputData($this->data);
+        if (!empty($this->dataBuffer)) {
+            $data = Util::prepareSQLInputData($this->dataBuffer);
         } else if (!empty($data)) {
             $data = Util::prepareSQLInputData($data);
         }
 
-        $this->createSQLStatement();
+        if(!$isNative) {
+            $this->createSQLStatement();
+        }
 
         try {
             $statement = $this->conn->prepare($this->sql, [
@@ -127,24 +143,17 @@ abstract class Statement {
         return null;
     }
 
-    private function addData($value)
-    {
-        if(is_array($value)) {
-            $this->data = array_merge($this->data, $value);
-        } else {
-            array_push($this->data, $value);
-        }
-    }
-
     private function reset()
     {
         $this->sql = '';
         $this->cols = [];
-        $this->data = [];
-        $this->table = [];
-        $this->selectList = [];
-        $this->filter = [];
-        $this->orderBy = [];
+        $this->dataBuffer = [];
+        $this->tableBuffer = [];
+        $this->selectListBuffer = [];
+        $this->filterBuffer = [];
+        $this->orderByBuffer = [];
+        $this->unionBuffer = [];
+        $this->joinBuffer = [];
         $this->currentCol = '';
     }
 

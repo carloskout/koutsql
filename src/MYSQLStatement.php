@@ -10,27 +10,32 @@ class MYSQLStatement extends Statement {
 
     public function fullJoin(string $table, string $col1, string $col2): Statement
     {
-        $pos = Util::getPos('FROM ', $this->sql) + 4; // +4 é pra deixar logo na posicao do espaco
-        var_dump($pos);
-        $this->sql .= " FULL JOIN $table ON $col1 = $col2";
+        Util::push("LEFT JOIN $table ON $col1 = $col2", $this->filterBuffer);
+        Util::push("LEFT JOIN $table ON $col1 = $col2", $this->filterBuffer);
+        /**
+        *SELECT * FROM t1
+        *LEFT JOIN t2 ON t1.id = t2.id
+        *UNION
+        *SELECT * FROM t1
+        *RIGHT JOIN t2 ON t1.id = t2.id
+         */
+        
         return $this;
     }
 
     public function offset(int $value): Statement
     {
-        
-        Util::push("LIMIT $value,", $this->orderBy);
+        Util::push("LIMIT $value,", $this->orderByBuffer);
         return $this;
     }
 
     public function fetch(int $value): Statement
     {
         if(Util::contains('LIMIT', $this->sql())) { //JA EXISTE O OFFSET
-            Util::push("$value", $this->orderBy);
+            Util::push("$value", $this->orderByBuffer);
         } else {
-            Util::push("LIMIT $value", $this->orderBy);
+            Util::push("LIMIT $value", $this->orderByBuffer);
         }
-        
         return $this;
     }
     

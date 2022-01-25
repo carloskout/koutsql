@@ -65,7 +65,7 @@ trait AggregateFn {
     {
         $params = Util::varArgs($params);
         $params = Util::convertArrayToString($params);
-        return $this->processDBFuncAndDistinctClause("$fn($params)");
+        return $this->addSelectListExpr("$fn($params)");
     }
 
     // definicao de metodos magicos para chamada de funcoes do banco de dados
