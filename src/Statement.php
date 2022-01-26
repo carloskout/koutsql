@@ -32,7 +32,8 @@ abstract class Statement {
      *
      * @var array
      */
-    protected $cols;
+    protected $colsBuffer = [];
+    protected $valuesBuffer = [];
 
     protected $currentCol;
 
@@ -69,6 +70,15 @@ abstract class Statement {
             case self::SELECT:
                 $this->createSelectStatement();
             break;
+            case self::INSERT:
+                $this->createInsertStatement();
+                break;
+            case self::UPDATE:
+                $this->createUpdateStatement();
+                break;
+            case self::DELETE:
+                $this->createDeleteStatement();
+                break;
             default:
                 $this->createExprStatement();
         }
@@ -97,6 +107,35 @@ abstract class Statement {
 
         if(!empty($this->unionBuffer)) {
             $this->sql .= ' ' . Util::convertArrayToString($this->unionBuffer);
+        }
+    }
+
+    private function createInsertStatement(): void 
+    {
+        $table = $this->tableBuffer[0];
+        $cols = Util::convertArrayToString($this->colsBuffer, ', ');
+        $values = Util::createNamedPlaceholders($this->colsBuffer);
+        $this->sql = "INSERT INTO $table ($cols) VALUES ($values)";
+    }
+
+    private function createUpdateStatement(): void 
+    {
+        $table = $this->tableBuffer[0];
+        $cols = Util::createSetColumns($this->colsBuffer);
+        $this->sql = "UPDATE $table SET $cols";
+
+        if(!empty($this->filterBuffer)) {
+            $this->sql .=  ' WHERE ' . Util::convertArrayToString($this->filterBuffer);
+        }
+    }
+
+    private function createDeleteStatement(): void
+    {
+        $table = $this->tableBuffer[0];
+        $this->sql = "DELETE FROM $table";
+
+        if(!empty($this->filterBuffer)) {
+            $this->sql .=  ' WHERE ' . Util::convertArrayToString($this->filterBuffer);
         }
     }
 
@@ -154,6 +193,8 @@ abstract class Statement {
         $this->orderByBuffer = [];
         $this->unionBuffer = [];
         $this->joinBuffer = [];
+        $this->colsBuffer = [];
+        $this->valuesBuffer = [];
         $this->currentCol = '';
     }
 

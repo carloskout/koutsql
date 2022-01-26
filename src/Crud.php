@@ -26,6 +26,7 @@ trait Crud
         }
 
         $this->reset();
+        Util::push($table, $this->tableBuffer);
 
         if (is_null($filter)) {
             return $this->persist($table, $data);
@@ -55,7 +56,8 @@ trait Crud
     public function remove(string $table, ...$filter): int
     {
         $this->reset();
-        $this->sql .= "DELETE FROM $table";
+        $this->type = Statement::DELETE;
+        Util::push($table, $this->tableBuffer);
         return $this->crudFilter($filter);
     }
 
@@ -71,8 +73,8 @@ trait Crud
         if (!is_callable($callback)) {
             throw new \Exception(
                 'Parâmetro inválido! 
-                Espera-se que o tipo Callable seja passado por parâmetro em vez de um ' 
-                . gettype($callback)
+                Espera-se que o tipo Callable seja passado por parâmetro em vez de um '
+                    . gettype($callback)
             );
         }
 
@@ -92,10 +94,8 @@ trait Crud
      */
     private function persist(string $table, array $data): int
     {
-        $keys = array_keys($data);
-        $cols = Util::convertArrayToString($keys);
-        $values = Util::createNamedPlaceholders($keys);
-        $this->sql = "INSERT INTO $table ($cols) VALUES ($values)";
+        $this->type = Statement::INSERT;
+        Util::push(array_keys($data), $this->colsBuffer);
         $this->exec($data);
         return $this->conn->lastInsertId() or 0;
     }
@@ -121,9 +121,9 @@ trait Crud
      */
     private function update(string $table, array $data, ...$filter): int
     {
-        $cols = Util::createSetColumns(array_keys($data));
-        $this->addData($data);
-        $this->sql = "UPDATE $table SET $cols";
+        $this->type = Statement::UPDATE;
+        Util::push(array_keys($data), $this->colsBuffer);
+        Util::push($data, $this->dataBuffer);
         return $this->crudFilter($filter);
     }
 
@@ -133,18 +133,18 @@ trait Crud
      * @param array $filter
      * @return integer - Quantidade de linhas afetadas pela execução da instrução SQL
      */
-    private function crudFilter(array $filter): int 
+    private function crudFilter(array $filter): int
     {
-        $arg = Util::varArgs($filter);
-        if (is_array($arg) && (count($arg) == 2)) {
-            $this->filter($arg[0], '=', $arg[1]);
+        if (!empty($filter)) {
+            $arg = Util::varArgs($filter);
+            if (is_array($arg) && (count($arg) == 2)) {
+                $this->filter($arg[0], '=', $arg[1]);
+            } else if (is_callable($arg[0])) {
+                call_user_func($arg[0], $this);
+            }
         }
 
-        else if(is_callable($arg[0])) {
-            call_user_func($arg[0], $this);
-        }
-
-        if($st = $this->exec()) {
+        if ($st = $this->exec()) {
             return $st->rowCount();
         }
         return 0;

@@ -10,16 +10,27 @@ class MYSQLStatement extends Statement {
 
     public function fullJoin(string $table, string $col1, string $col2): Statement
     {
-        Util::push("LEFT JOIN $table ON $col1 = $col2", $this->filterBuffer);
-        Util::push("LEFT JOIN $table ON $col1 = $col2", $this->filterBuffer);
-        /**
-        *SELECT * FROM t1
-        *LEFT JOIN t2 ON t1.id = t2.id
-        *UNION
-        *SELECT * FROM t1
-        *RIGHT JOIN t2 ON t1.id = t2.id
-         */
-        
+        global $t1;
+        global $t2;
+        global $c1;
+        global $c2;
+
+        $t1 = $this->tableBuffer[0];
+        $t2 = $table;
+        $c1 = $col1;
+        $c2 = $col2;
+
+        Util::push("LEFT JOIN $table ON $col1 = $col2", $this->joinBuffer);
+
+        $closure = function(Statement $st) {
+            global $t1;
+            global $t2;
+            global $c1;
+            global $c2;
+            return $st->get($t1)->rightJoin($t2, $c1, $c2);
+        };
+
+        $this->union($closure);
         return $this;
     }
 
