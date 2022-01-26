@@ -10,7 +10,7 @@ trait AggregateFn {
      * @return Statement
      */
     public function min(string $col): Statement {
-        return $this->processDBFunction('MIN', $col);
+        return $this->addDBFunction('MIN', $col);
     }
 
     /**
@@ -20,7 +20,7 @@ trait AggregateFn {
      * @return Statement
      */
     public function max(string $col): Statement {
-        return $this->processDBFunction('MAX', $col);
+        return $this->addDBFunction('MAX', $col);
     }
 
     /**
@@ -30,7 +30,7 @@ trait AggregateFn {
      */
     public function count(string $col): Statement
     {
-        return $this->processDBFunction('COUNT', $col);
+        return $this->addDBFunction('COUNT', $col);
     }
 
     /**
@@ -40,7 +40,7 @@ trait AggregateFn {
      * @return Statement
      */
     public function sum(string $col): Statement {
-        return $this->processDBFunction('SUM', $col);
+        return $this->addDBFunction('SUM', $col);
     }
 
     /**
@@ -50,7 +50,7 @@ trait AggregateFn {
      * @return Statement
      */
     public function avg(string $col): Statement {
-        return $this->processDBFunction('AVG', $col);
+        return $this->addDBFunction('AVG', $col);
     }
 
     /**
@@ -61,17 +61,17 @@ trait AggregateFn {
      * @param [type] ...$params - Parâmetros para a função
      * @return Statement
      */
-    private function processDBFunction(string $fn, ...$params): Statement
+    private function addDBFunction(string $fn, ...$params): Statement
     {
         $params = Util::varArgs($params);
-        $params = Util::convertArrayToString($params);
+        $params = Util::convertArrayToString($params, ', ');
         return $this->addSelectListExpr("$fn($params)");
     }
 
     // definicao de metodos magicos para chamada de funcoes do banco de dados
     public function __call($name, $args)
     {
-        return $this->processDBFunction($name, $args);
+        return $this->addDBFunction($name, $args);
     }
 
 }
