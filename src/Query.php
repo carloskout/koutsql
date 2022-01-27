@@ -6,10 +6,10 @@ trait Query
 {
 
     /**
+     * Busca registros
      *
-     *
-     * @param [type] $table
-     * @param array $cols
+     * @param mixed $table - String ou array
+     * @param array $cols - Colunas a serem retornadas no resultado da query
      * @return Statement
      */
     public function get($table, array $cols = []): Statement
@@ -21,12 +21,22 @@ trait Query
         return $this;
     }
 
+    /**
+     * Adiciona um intervalo a partir do qual será retornado os registros
+     * @param integer $value
+     * @return Statement
+     */
     public function offset(int $value): Statement
     {
         Util::push("OFFSET $value ROWS", $this->orderByBuffer);
         return $this;
     }
 
+    /**
+     * Adiciona o limite de registros a serem retornados
+     * @param integer $value
+     * @return Statement
+     */
     public function fetch(int $value): Statement
     {
         if (Util::contains('OFFSET', $this->sql())) {
@@ -38,7 +48,7 @@ trait Query
     }
 
     /**
-     * Adicona a cláusula 'order by field asc' à instrução SQL.
+     * Adicona a cláusula 'order by asc' à instrução SQL.
      *
      * @param string $field - O campo a ser ordenado
      * @return Statement
@@ -49,7 +59,7 @@ trait Query
     }
 
     /**
-     * Adicona a cláusula 'order by field desc' à instrução SQL.
+     * Adicona a cláusula 'order by desc' à instrução SQL.
      *
      * @param string $field - O campo a ser ordenado
      * @return Statement
@@ -60,10 +70,12 @@ trait Query
     }
 
     /**
-     * Adiciona a cláusula 'inner join table_name' à
+     * Adiciona a cláusula 'inner join table' à
      * instrução SQL.
      *
-     * @param string $tableName
+     * @param string $table
+     * @param string $col1 - Coluna de comparação da primeira tabela
+     * @param string $col2 - Coluna de comparação da segunda tabela
      * @return Statement
      */
     public function innerJoin(string $table, string $col1, string $col2): Statement
@@ -73,10 +85,12 @@ trait Query
     }
 
     /**
-     * Adiciona a cláusula 'left join table_name' à
+     * Adiciona a cláusula 'left join table' à
      * instrução SQL.
      *
-     * @param string $tableName
+     * @param string $table
+     * @param string $col1 - Coluna de comparação da primeira tabela
+     * @param string $col2 - Coluna de comparação da segunda tabela
      * @return Statement
      */
     public function leftJoin(string $table, string $col1, string $col2)
@@ -89,7 +103,10 @@ trait Query
      * Adiciona a cláusula 'right join table_name' à
      * instrução SQL.
      *
-     * @param string $tableName
+     * @param string $table
+     * @param string $table
+     * @param string $col1 - Coluna de comparação da primeira tabela
+     * @param string $col2 - Coluna de comparação da segunda tabela
      * @return Statement
      */
     public function rightJoin(string $table, string $col1, string $col2)
@@ -99,13 +116,12 @@ trait Query
     }
 
     /**
-     * Adiciona a cláusula 'cross join table_name' à
+     * Adiciona a cláusula 'cross join table' à
      * instrução SQL.
-     * 
-     * Cross join não faz uso de predicados 
-     * especificados nas cláusulas 'on' e 'using'.
      *
-     * @param string $tableName
+     * @param string $table
+     * @param string $col1 - Coluna de comparação da primeira tabela
+     * @param string $col2 - Coluna de comparação da segunda tabela
      * @return Statement
      */
     public function crossJoin(string $table, string $col1, string $col2): Statement
@@ -114,6 +130,15 @@ trait Query
         return $this;
     }
 
+    /**
+     * Adiciona a cláusula 'cross join table' à
+     * instrução SQL.
+     *
+     * @param string $table
+     * @param string $col1 - Coluna de comparação da primeira tabela
+     * @param string $col2 - Coluna de comparação da segunda tabela
+     * @return Statement
+     */
     public function fullJoin(string $table, string $col1, string $col2): Statement
     {
         Util::push("FULL JOIN $table ON $col1 = $col2", $this->joinBuffer);
@@ -132,22 +157,6 @@ trait Query
     {
         Util::push("GROUP BY " . Util::convertArrayToString(Util::varArgs($fields), ', '), 
         $this->filterBuffer);
-        return $this;
-    }
-
-    /**
-     * Adiciona a cláusula 'groupy by $fields with rollup' à instrução SQL.
-     *
-     * @param varArgs ...$fields - Nomes do campos para
-     * agrupamentos
-     * 
-     * @return Statement
-     */
-    public function groupByWithRollup(...$fields): Statement
-    {
-        Util::push("GROUP BY " . Util::convertArrayToString(Util::varArgs($fields), ', '), 
-        $this->filterBuffer);
-        Util::push("WITH ROLLUP", $this->filterBuffer);
         return $this;
     }
 
@@ -209,7 +218,7 @@ trait Query
      * Executa instrução sql nativa
      *
      * @param string $sql
-     * @param array $data
+     * @param array $data - Dados de entrada para instrução SQL
      * @return ResultSet
      */
     public function nativeSQL(string $sql, array $data = null)
@@ -234,6 +243,14 @@ trait Query
         );
     }
 
+    /**
+     * Cria subquery a partir de uma função passada por parâmetro
+     *
+     * @param Callable $callback - Função callback que recebe como parâmetro
+     * um obejto Statement e retorna o mesmo contento o encadeamento de métodos
+     * que montam a subquery.
+     * @return string - Instrução SQL
+     */
     private function createSubquery($callback): string
     {
         if (!is_callable($callback)) {
@@ -244,22 +261,37 @@ trait Query
         return trim($subquery->sql());
     }
 
-    private function addOrderByClause(array $fields, $type): Statement
+    /**
+     * Adiciona cláusula order by
+     *
+     * @param array $cols - Colunas
+     * @param  string $type - Especifica o tipo ascendente ou descendente
+     * @return Statement
+     */
+    private function addOrderByClause(array $cols, string $type): Statement
     {
-        $fields = Util::varArgs($fields);
-        if (count($fields) == 1) { // um campo para ordenar
+        $cols = Util::varArgs($cols);
+        if (count($cols) == 1) { // um campo para ordenar
             if (!Util::contains('ORDER BY', $this->sql())) {
-                Util::push("ORDER BY $fields[0] ${type}", $this->orderByBuffer);
+                Util::push("ORDER BY $cols[0] ${type}", $this->orderByBuffer);
             } else {
-                Util::push(", $fields[0] ${type}", $this->orderByBuffer);
+                Util::push(", $cols[0] ${type}", $this->orderByBuffer);
             }
-        } else if (count($fields) > 1) { // muitos campos para ordenar
-            Util::push("ORDER BY " . Util::convertArrayToString($fields, ', ') . " $type", $this->orderByBuffer);
+        } else if (count($cols) > 1) { // muitos campos para ordenar
+            Util::push("ORDER BY " . Util::convertArrayToString($cols, ', ') 
+            . " $type", $this->orderByBuffer);
         }
 
         return $this;
     }
 
+    /**
+     * Adiciona a cláusula union
+     *
+     * @param Callable $callback
+     * @param string|null $type - ALL, Distinct ou vazio
+     * @return Statement
+     */
     private function addUnionClause($callback, string $type = null): Statement
     {
         $union = "UNION ";
@@ -272,6 +304,12 @@ trait Query
         return $this;
     }
 
+    /**
+     * Adiciona expressoes na 'select list'
+     *
+     * @param string $expr - Coluna ou uma função do banco de dados no formato string
+     * @return Statement
+     */
     private function addSelectListExpr(string $expr): Statement
     {
         if ($this->selectListBuffer[0] == '*') {

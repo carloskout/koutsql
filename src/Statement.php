@@ -58,12 +58,22 @@ abstract class Statement {
         $this->conn = $pdo;
     }
 
+    /**
+     * Retorna a instrução SQL no formato string
+     *
+     * @return string
+     */
     public function sql(): string
     {
         $this->createSQLStatement();
         return $this->sql;
     }
 
+    /**
+     * Determina qua instrução SQL será executada
+     *
+     * @return void
+     */
     private function createSQLStatement():void
     {
         switch($this->type) {
@@ -84,6 +94,10 @@ abstract class Statement {
         }
     }
 
+    /**
+     * Prepara a instrução SQL para a consulta de dados
+     * @return void
+     */
     private function createSelectStatement(): void 
     {
         $selectList = Util::convertArrayToString($this->selectListBuffer, ', ');
@@ -110,6 +124,10 @@ abstract class Statement {
         }
     }
 
+    /**
+     * Prepara a instrução SQL para a inserção de dados
+     * @return void
+     */
     private function createInsertStatement(): void 
     {
         $table = $this->tableBuffer[0];
@@ -118,6 +136,10 @@ abstract class Statement {
         $this->sql = "INSERT INTO $table ($cols) VALUES ($values)";
     }
 
+    /**
+     * Prepara a instrução SQL para atualização de dados
+     * @return void
+     */
     private function createUpdateStatement(): void 
     {
         $table = $this->tableBuffer[0];
@@ -129,6 +151,10 @@ abstract class Statement {
         }
     }
 
+    /**
+     * Prepara a instrução SQL para remoção de dados
+     * @return void
+     */
     private function createDeleteStatement(): void
     {
         $table = $this->tableBuffer[0];
@@ -139,6 +165,10 @@ abstract class Statement {
         }
     }
 
+    /**
+     * Prepara a instrução SQL com um filtro sem a cláusula WHERE
+     * @return void
+     */
     private function createExprStatement(): void 
     {
         $this->sql = Util::convertArrayToString($this->filterBuffer);
@@ -146,7 +176,8 @@ abstract class Statement {
 
     /**
      * Executa instruções SQL
-     *
+     *@param bool $isNative - Determina se a execução será de uma instrução SQL nativa
+     * ou montada com Statement
      * @return PDOStatement
      */
     private function exec(?array $data = null, bool $isNative = false): ?PDOStatement
@@ -182,6 +213,11 @@ abstract class Statement {
         return null;
     }
 
+    /**
+     * Esse método é chamado a cada vez que uma instrução SQL for executada
+     *
+     * @return void
+     */
     private function reset()
     {
         $this->sql = '';

@@ -177,11 +177,6 @@ class Util
         return 'col_' . self::increment();
     }
 
-    public static function getPos(string $serach, string $content): int 
-    {
-        return $pos = strpos($content, $serach);
-    }
-
     public static function push($value, array &$array): void
     {
         if(is_array($value)) {
