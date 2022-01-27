@@ -49,5 +49,16 @@ class MYSQLStatement extends Statement {
         }
         return $this;
     }
+
+    /**
+     * Retorna o primeiro resultado retornado pela query.
+     *
+     * @param array|null $data - Dados de entrada para execução da instrução SQL.
+     * @return array - Array associativo.
+     */
+    public function first(array $data = null): array 
+    {
+        throw new \Exception('Não suportado');
+    }
     
 }
