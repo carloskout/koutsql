@@ -41,7 +41,7 @@ class Util
 
     /*
     Esse metodo deve ser chamado para toda entrada de metodos
-    onde o paramentro é um array pois o array pode vir como
+    onde o paramentro é um array o qual pode vir como
     um varArgs ...$fields
     */
     public static function varArgs($args)
