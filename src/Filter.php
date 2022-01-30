@@ -50,11 +50,11 @@ trait Filter
                     break;
                 case '->':
                 case '!->':
-                    if((is_array($value) && count($value) > 0) || is_callable($value) ) {
+                    if(is_array($value) || is_callable($value) ) {
                         $type = ($op == '!->') ? 'NOT' : null;
                         $this->addInOperator($value, $type);
                     } else {
-                        throw new \Exception("Intervalo de dados para o operador IN está incorreto. Espera-se que seja passado um array indexado com um ou mais valores");
+                        throw new \Exception("Intervalo de dados para o operador IN está incorreto. Espera-se que seja passado um array indexado ou uma função callback para subquery");
                     }
                     break;
                 case '|':
@@ -77,8 +77,11 @@ trait Filter
                 default:
                     throw new \Exception("Operador '$op' inválido" );
             }
-            return $this;
+        } else {
+            throw new \Exception('Erro ao criar expressão.');
         }
+
+        return $this;
     }
 
     /**

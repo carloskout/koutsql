@@ -114,6 +114,7 @@ class UtilTest extends TestCase {
         $this->assertEquals($exp, $rs);
     }
 
+    /*
     public function testCreateRandomColumn()
     {
         // criando uma coluna
@@ -124,7 +125,7 @@ class UtilTest extends TestCase {
         $rs = Util::createRandomColumn(3);
         $this->assertEquals(['col_2', 'col_3', 'col_4'], $rs);
     }
-
+    */
     public function testPush()
     {
         // passando valor literal
