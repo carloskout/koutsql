@@ -216,4 +216,14 @@ class QueryTest extends TestCase {
         $rs = $this->db->get('author')->filter('id')->geValue(3)->first();
         $this->assertEquals('Caio Levi', $rs['name']);
     }
+
+    public function testFilterRelationalOperatorWithSubquery()
+    {
+        $subQ = function(Statement $st) {
+            return $st->get('author', ['id'])->filter('name', '^', 'Carlos');
+        };
+
+        $rs = $this->db->get('author')->filter('id', '=', $subQ)->first();
+        $this->assertEquals('Carlos Coutinho', $rs['name']);
+    }
 }

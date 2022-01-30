@@ -76,7 +76,6 @@ trait RelationalOperator {
      */
     private function addRelationalOperator(string $op, $value): Statement
     {
-        
         // Se o valor for uma subquery
         if (is_callable($value)) {
             Util::push("$op (" . $this->createSubquery($value) . ")", $this->filterBuffer);
