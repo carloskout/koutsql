@@ -80,7 +80,7 @@ trait LogicalOperator
      */
     public function between($low, $high): Statement
     {
-        return $this->addBetweenOperator($low, $high);
+        return $this->addBetweenOperator([$low, $high]);
     }
 
     /**
@@ -92,7 +92,7 @@ trait LogicalOperator
      */
     public function notBetween($low, $high): Statement
     {
-        return $this->addBetweenOperator($low, $high, 'not');
+        return $this->addBetweenOperator([$low, $high], 'not');
     }
 
     /**
@@ -200,7 +200,7 @@ trait LogicalOperator
      */
     private function addInOperator($value, string $type = null): Statement
     {
-        if(!is_array($value) || !is_callable($value) ) {
+        if(!(is_array($value) || is_callable($value))) {
             throw new \Exception("Intervalo de dados para o operador IN está incorreto. Espera-se que seja passado um array indexado ou uma função callback para subquery");
         }
 
@@ -240,12 +240,19 @@ trait LogicalOperator
      * @param string $type - Indica se o operador between será precedido pelo valor 'NOT'.
      * @return Statement
      */
-    private function addBetweenOperator($low, $high, string $type = null): Statement
+    private function addBetweenOperator($value, string $type = null): Statement
     {
+        if(!(is_array($value) && count($value) == 2)) {
+            throw new \Exception("Intervalo de dados para o operador BETWEEN está incorreto. Espera-se que seja passado um array indexado com dois valores");
+        }
+
         if ($type) {
             Util::push($type, $this->filterBuffer);
         }
 
+        $low = $value[0];
+        $high = $value[1];
+        
         if (Util::containsPlaceholders($low) && Util::containsPlaceholders($high)) {
             Util::push("BETWEEN ${low} AND ${high}", $this->filterBuffer);
         } else {
