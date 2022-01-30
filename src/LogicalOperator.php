@@ -200,6 +200,10 @@ trait LogicalOperator
      */
     private function addInOperator($value, string $type = null): Statement
     {
+        if(!is_array($value) || !is_callable($value) ) {
+            throw new \Exception("Intervalo de dados para o operador IN está incorreto. Espera-se que seja passado um array indexado ou uma função callback para subquery");
+        }
+
         $value = is_array($value) ? Util::varArgs($value) : $value;
         Util::push(!is_null($type) ? "$type IN" : 'IN', $this->filterBuffer);
 
