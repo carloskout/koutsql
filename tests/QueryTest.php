@@ -1,16 +1,18 @@
-<?php 
+<?php
+
 namespace Kout\Tests;
 
 use PHPUnit\Framework\TestCase;
 use Kout\DB;
 use Kout\Statement;
 
-class QueryTest extends TestCase {
+class QueryTest extends TestCase
+{
 
-    protected function setUp():void
+    protected function setUp(): void
     {
-        //$pdo = new \PDO('mysql:dbname=queryb;host=localhost', 'root', 'root');
-        $pdo = new \PDO('sqlsrv:Server=localhost;Database=queryb', 'sa', 'root');
+        $pdo = new \PDO('mysql:dbname=queryb;host=localhost', 'root', 'root');
+        //$pdo = new \PDO('sqlsrv:Server=localhost;Database=queryb', 'sa', 'root');
         $this->db = DB::getStatement($pdo);
     }
 
@@ -66,11 +68,11 @@ class QueryTest extends TestCase {
     public function testFilter_IN_OperatorWithLiteralValues()
     {
         // testando o metodo filter com operador IN com valores literais de entrada
-        $rs = $this->db->get('author')->filter('id', '->', [1,2])->list();
+        $rs = $this->db->get('author')->filter('id', '->', [1, 2])->list();
         $this->assertEquals('Carlos Coutinho', $rs[0]['name']);
         $this->assertEquals('Delvania Paz', $rs[1]['name']);
 
-        $rs = $this->db->get('author')->filter('id')->in(1,2)->list();
+        $rs = $this->db->get('author')->filter('id')->in(1, 2)->list();
         $this->assertEquals('Carlos Coutinho', $rs[0]['name']);
         $this->assertEquals('Delvania Paz', $rs[1]['name']);
     }
@@ -78,10 +80,10 @@ class QueryTest extends TestCase {
     public function testFilter_NOT_IN_OperatorWithLiteralValues()
     {
         // testando o metodo filter com operador NOT IN com valores literais de entrada
-        $rs = $this->db->get('author')->filter('id', '!->', [1,2])->list();
+        $rs = $this->db->get('author')->filter('id', '!->', [1, 2])->list();
         $this->assertEquals('Caio Levi', $rs[0]['name']);
 
-        $rs = $this->db->get('author')->filter('id')->notIn(1,2)->list();
+        $rs = $this->db->get('author')->filter('id')->notIn(1, 2)->list();
         $this->assertEquals('Caio Levi', $rs[0]['name']);
     }
 
@@ -94,7 +96,7 @@ class QueryTest extends TestCase {
 
     public function testFilter_IN_WithSubquery()
     {
-        $subQ = function(Statement $st) {
+        $subQ = function (Statement $st) {
             return $st->get('category', ['id']);
         };
 
@@ -125,11 +127,11 @@ class QueryTest extends TestCase {
     public function testFilter_BETWEEN_OperatorWithLiteralValues()
     {
         //testando operador between com valores literais
-        $rs = $this->db->get('author')->filter('id', '|', [2,3])->list();
+        $rs = $this->db->get('author')->filter('id', '|', [2, 3])->list();
         $this->assertEquals('Delvania Paz', $rs[0]['name']);
         $this->assertEquals('Caio Levi', $rs[1]['name']);
 
-        $this->db->get('author')->filter('id')->between(2,3)->list();
+        $this->db->get('author')->filter('id')->between(2, 3)->list();
         $this->assertEquals('Delvania Paz', $rs[0]['name']);
         $this->assertEquals('Caio Levi', $rs[1]['name']);
     }
@@ -137,17 +139,17 @@ class QueryTest extends TestCase {
     public function testFilter_NOT_BETWEEN_OperatorWithLiteralValues()
     {
         //testando operador not between com valores literais
-        $rs = $this->db->get('author')->filter('id', '^|', [2,3])->list();
+        $rs = $this->db->get('author')->filter('id', '^|', [2, 3])->list();
         $this->assertEquals('Carlos Coutinho', $rs[0]['name']);
 
-        $this->db->get('author')->filter('id')->notBetween(2,3)->list();
+        $this->db->get('author')->filter('id')->notBetween(2, 3)->list();
         $this->assertEquals('Carlos Coutinho', $rs[0]['name']);
     }
 
     public function testFilter_BETWEEN_Placeholders()
     {
         //testando operador between com placeholders
-        $rs = $this->db->get('author')->filter('id', '|', [':low',':high'])->list(['low' => 2, 'high' => 3]);
+        $rs = $this->db->get('author')->filter('id', '|', [':low', ':high'])->list(['low' => 2, 'high' => 3]);
         $this->assertEquals('Delvania Paz', $rs[0]['name']);
         $this->assertEquals('Caio Levi', $rs[1]['name']);
 
@@ -177,7 +179,7 @@ class QueryTest extends TestCase {
 
     public function testExists()
     {
-        $subQ = function(Statement $st) {
+        $subQ = function (Statement $st) {
             return $st->get('author', ['id'])->filter('id', '=', 1);
         };
 
@@ -187,7 +189,7 @@ class QueryTest extends TestCase {
 
     public function testNotExists()
     {
-        $subQ = function(Statement $st) {
+        $subQ = function (Statement $st) {
             return $st->get('author', ['id'])->filter('id', '=', 2);
         };
 
@@ -201,10 +203,10 @@ class QueryTest extends TestCase {
         $this->assertNotEmpty($rs);
 
         $rs = $this->db->get('article')->filter('id')
-        ->eqValue(1)
-        ->and('author_id')
-        ->eqValue(1)
-        ->first();
+            ->eqValue(1)
+            ->and('author_id')
+            ->eqValue(1)
+            ->first();
         $this->assertNotEmpty($rs);
     }
 
@@ -214,16 +216,16 @@ class QueryTest extends TestCase {
         $this->assertNotEmpty($rs);
 
         $rs = $this->db->get('article')->filter('id')
-        ->eqValue(1)
-        ->or('author_id')
-        ->eqValue(1)
-        ->first();
+            ->eqValue(1)
+            ->or('author_id')
+            ->eqValue(1)
+            ->first();
         $this->assertNotEmpty($rs);
     }
 
     public function testSubexpr()
     {
-        $subExpr = function(Statement $st) {
+        $subExpr = function (Statement $st) {
             return $st->filter('author_id', '=', 1)->or('category_id', '=', 2);
         };
 
@@ -231,7 +233,7 @@ class QueryTest extends TestCase {
         $this->assertNotEmpty($rs);
 
         //Outra forma usando o metodo subexpr
-        $subExpr = function(Statement $st) {
+        $subExpr = function (Statement $st) {
             return $st->subexpr('author_id', '=', 1)->or('category_id', '=', 2);
         };
 
@@ -239,16 +241,15 @@ class QueryTest extends TestCase {
         $this->assertNotEmpty($rs);
 
         //Outra forma
-        $subExpr = function(Statement $st) {
+        $subExpr = function (Statement $st) {
             return $st->subexpr('author_id')
-            ->eqValue(1)
-            ->or('category_id')
-            ->eqValue(2);
+                ->eqValue(1)
+                ->or('category_id')
+                ->eqValue(2);
         };
 
         $rs = $this->db->get('article')->filter('id', '=', 1)->and($subExpr)->list();
         $this->assertNotEmpty($rs);
-
     }
 
     public function testFilterEqualsOperator()
@@ -307,7 +308,7 @@ class QueryTest extends TestCase {
 
     public function testFilterRelationalOperatorWithSubquery()
     {
-        $subQ = function(Statement $st) {
+        $subQ = function (Statement $st) {
             return $st->get('author', ['id'])->filter('name', '^', 'Carlos');
         };
 
@@ -381,76 +382,38 @@ class QueryTest extends TestCase {
         $this->assertNotEmpty($rs);
     }
 
-    public function testOffset()
-    {
-        if($this->db->getDriver() == 'mysql') {
-            $rs = $this->db->get('author')->offset(2)->list();
-            $this->assertNotEmpty($rs);
-        } else {
-            // no sql server temos que usar order by antes de usar offset e fetch
-            $rs = $this->db->get('author')->orderByAsc('id')->offset(2)->list();
-            $this->assertNotEmpty($rs);
-        }
-    }
-
-    public function testFetch()
-    {
-
-        if($this->db->getDriver() == 'mysql') {
-            $rs = $this->db->get('author')->fetch(5)->list();
-            $this->assertNotEmpty($rs);
-        } else {
-            // no sql server temos que usar order by antes de usar offset e fetch
-            $rs = $this->db->get('author')->orderByAsc('id')->fetch(5)->list();
-            $this->assertNotEmpty($rs);
-        }
-    }
-
-    public function testOffsetFetch()
-    {
-        if($this->db->getDriver() == 'mysql') {
-            $rs = $this->db->get('author')->offset(2)->fetch(5)->list();
-            $this->assertNotEmpty($rs);
-        } else {
-            // no sql server temos que usar order by antes de usar offset e fetch
-            $rs = $this->db->get('author')->orderByDesc('id')
-            ->offset(1)->fetch(3)->list();
-            $this->assertNotEmpty($rs);
-        }
-    }
-
-    public function testFilterJoin() 
+    public function testFilterJoin()
     {
         $rs = $this->db->get(['author', 'article'])
-        ->filter('author.id', '=', '*article.author_id')->list();
+            ->filter('author.id', '=', '*article.author_id')->list();
         $this->assertNotEmpty($rs);
     }
 
     public function testInnerJoin()
     {
         $rs = $this->db->get('article')
-        ->innerJoin('author', 'author.id', 'article.author_id')->list();
+            ->innerJoin('author', 'author.id', 'article.author_id')->list();
         $this->assertNotEmpty($rs);
     }
 
     public function testLeftJoin()
     {
         $rs = $this->db->get('article')
-        ->leftJoin('author', 'author.id', 'article.author_id')->list();
+            ->leftJoin('author', 'author.id', 'article.author_id')->list();
         $this->assertNotEmpty($rs);
     }
 
     public function testRightJoin()
     {
         $rs = $this->db->get('article')
-        ->rightJoin('author', 'author.id', 'article.author_id')->list();
+            ->rightJoin('author', 'author.id', 'article.author_id')->list();
         $this->assertNotEmpty($rs);
     }
 
     public function testCrossJoin()
     {
         $rs = $this->db->get('article')
-        ->crossJoin('author', 'author.id', 'article.author_id')->list();
+            ->crossJoin('author')->list();
         $this->assertNotEmpty($rs);
     }
 }
