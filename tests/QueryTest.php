@@ -9,8 +9,8 @@ class QueryTest extends TestCase {
 
     protected function setUp():void
     {
-        $pdo = new \PDO('mysql:dbname=queryb;host=localhost', 'root', 'root');
-        //$pdo = new \PDO('sqlsrv:Server=localhost;Database=queryb', 'sa', 'root');
+        //$pdo = new \PDO('mysql:dbname=queryb;host=localhost', 'root', 'root');
+        $pdo = new \PDO('sqlsrv:Server=localhost;Database=queryb', 'sa', 'root');
         $this->db = DB::getStatement($pdo);
     }
 
@@ -413,10 +413,44 @@ class QueryTest extends TestCase {
             $this->assertNotEmpty($rs);
         } else {
             // no sql server temos que usar order by antes de usar offset e fetch
-            $rs = $this->db->get('author')->orderByAsc('id')
+            $rs = $this->db->get('author')->orderByDesc('id')
             ->offset(1)->fetch(3)->list();
             $this->assertNotEmpty($rs);
         }
-        
+    }
+
+    public function testFilterJoin() 
+    {
+        $rs = $this->db->get(['author', 'article'])
+        ->filter('author.id', '=', '*article.author_id')->list();
+        $this->assertNotEmpty($rs);
+    }
+
+    public function testInnerJoin()
+    {
+        $rs = $this->db->get('article')
+        ->innerJoin('author', 'author.id', 'article.author_id')->list();
+        $this->assertNotEmpty($rs);
+    }
+
+    public function testLeftJoin()
+    {
+        $rs = $this->db->get('article')
+        ->leftJoin('author', 'author.id', 'article.author_id')->list();
+        $this->assertNotEmpty($rs);
+    }
+
+    public function testRightJoin()
+    {
+        $rs = $this->db->get('article')
+        ->rightJoin('author', 'author.id', 'article.author_id')->list();
+        $this->assertNotEmpty($rs);
+    }
+
+    public function testCrossJoin()
+    {
+        $rs = $this->db->get('article')
+        ->crossJoin('author', 'author.id', 'article.author_id')->list();
+        $this->assertNotEmpty($rs);
     }
 }

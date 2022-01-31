@@ -124,9 +124,9 @@ trait Query
      * @param string $col2 - Coluna de comparação da segunda tabela
      * @return Statement
      */
-    public function crossJoin(string $table, string $col1, string $col2): Statement
+    public function crossJoin(string $table): Statement
     {
-        Util::push("CROSS JOIN $table ON $col1 = $col2", $this->joinBuffer);
+        Util::push("CROSS JOIN $table", $this->joinBuffer);
         return $this;
     }
 
