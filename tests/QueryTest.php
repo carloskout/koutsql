@@ -10,7 +10,7 @@ class QueryTest extends TestCase {
     protected function setUp():void
     {
         $pdo = new \PDO('mysql:dbname=queryb;host=localhost', 'root', 'root');
-        //self::$pdo = new \PDO('sqlsrv:Server=localhost;Database=queryb', 'sa', 'root');
+        //$pdo = new \PDO('sqlsrv:Server=localhost;Database=queryb', 'sa', 'root');
         $this->db = DB::getStatement($pdo);
     }
 
@@ -383,6 +383,40 @@ class QueryTest extends TestCase {
 
     public function testOffset()
     {
+        if($this->db->getDriver() == 'mysql') {
+            $rs = $this->db->get('author')->offset(2)->list();
+            $this->assertNotEmpty($rs);
+        } else {
+            // no sql server temos que usar order by antes de usar offset e fetch
+            $rs = $this->db->get('author')->orderByAsc('id')->offset(2)->list();
+            $this->assertNotEmpty($rs);
+        }
+    }
+
+    public function testFetch()
+    {
+
+        if($this->db->getDriver() == 'mysql') {
+            $rs = $this->db->get('author')->fetch(5)->list();
+            $this->assertNotEmpty($rs);
+        } else {
+            // no sql server temos que usar order by antes de usar offset e fetch
+            $rs = $this->db->get('author')->orderByAsc('id')->fetch(5)->list();
+            $this->assertNotEmpty($rs);
+        }
+    }
+
+    public function testOffsetFetch()
+    {
+        if($this->db->getDriver() == 'mysql') {
+            $rs = $this->db->get('author')->offset(2)->fetch(5)->list();
+            $this->assertNotEmpty($rs);
+        } else {
+            // no sql server temos que usar order by antes de usar offset e fetch
+            $rs = $this->db->get('author')->orderByAsc('id')
+            ->offset(1)->fetch(3)->list();
+            $this->assertNotEmpty($rs);
+        }
         
     }
 }
