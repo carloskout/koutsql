@@ -40,7 +40,7 @@ trait Filter
      */
     private function createExpr(string $op, $value)
     {
-        if (!empty($op) && !empty($value)) {
+        if (!empty($op) && (!empty($value) || $value === 0 || $value === false)) {
 
             switch($op) {
                 case '^':

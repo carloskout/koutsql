@@ -8,9 +8,9 @@ trait ResultSet
      * Retorna todos os registros retornados pela query.
      *
      * @param array|null $data - Dados de entrada para execução da instrução SQL.
-     * @return array - Array associativo contentdo todos os registros retornados.
+     * @return array|bool - Array associativo contentdo todos os registros retornados.
      */
-    public function list(array $data = null): array 
+    public function list(array $data = null)
     {
         return $this->exec($data)->fetchAll(\PDO::FETCH_ASSOC);
     }
@@ -19,9 +19,9 @@ trait ResultSet
      * Retorna o primeiro resultado retornado pela query.
      *
      * @param array|null $data - Dados de entrada para execução da instrução SQL.
-     * @return array - Array associativo.
+     * @return array|bool - Array associativo.
      */
-    public function first(array $data = null): array 
+    public function first(array $data = null)
     {
         return $this->exec($data)->fetch(\PDO::FETCH_ASSOC);
     }
@@ -30,9 +30,9 @@ trait ResultSet
      * Retorna o ultimo resultado retornado pela query.
      *
      * @param array|null $data - Dados de entrada para execução da instrução SQL.
-     * @return array - Array associativo.
+     * @return array|bool - Array associativo.
      */
-    public function last(array $data = null): array
+    public function last(array $data = null)
     {
         return $this->exec($data)->fetch(\PDO::FETCH_ASSOC, \PDO::FETCH_ORI_LAST);
     }
@@ -41,7 +41,7 @@ trait ResultSet
      * Retorna o valor literal de uma coluna.
      *
      * @param array|null $data - Dados de entrada para execução da instrução SQL.
-     * @return array - Array associativo.
+     * @return array|bool - Array associativo.
      */
     public function singleResult(array $data = null)
     {
@@ -56,9 +56,9 @@ trait ResultSet
      *
      * @param string $className - Nome da classe
      * @param array|null $data - Dados de entrada para execução da instrução SQL.
-     * @return object - Instancia de $className.
+     * @return array|bool - Instancia de $className.
      */
-    public function toObjects(string $className = null, array $data = null): array
+    public function toObjects(string $className = null, array $data = null)
     {
         return $this->exec($data)->fetchAll(\PDO::FETCH_CLASS, $className);
     }
@@ -68,9 +68,9 @@ trait ResultSet
      *
      * @param string $className - Nome da classe,
      * @param array|null $data - Dados de entrada para execução da instrução SQL.
-     * @return object - Instancia de $className.
+     * @return object|bool - Instancia de $className.
      */
-    public function toObject(string $className = null, array $data = null): object
+    public function toObject(string $className = null, array $data = null)
     {
         return $this->exec($data)->fetchObject($className);
     }
@@ -81,9 +81,9 @@ trait ResultSet
      * PDORow forem acessadas.
      *
      * @param array|null $data - Dados de entrada para execução da instrução SQL.
-     * @return \PDORow
+     * @return bool|\PDORow
      */
-    public function lazy(array $data = null): \PDORow 
+    public function lazy(array $data = null)
     {
         return $this->exec($data)->fetch(\PDO::FETCH_LAZY);
     }

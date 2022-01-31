@@ -163,6 +163,94 @@ class QueryTest extends TestCase {
         $this->db->get('author')->filter('id', '|', 123)->list();
     }
 
+    public function testIsNull()
+    {
+        $rs = $this->db->get('category')->filter('category_parent')->isNull()->first();
+        $this->assertEquals('Noticias', $rs['name']);
+    }
+
+    public function testIsNotNull()
+    {
+        $rs = $this->db->get('category')->filter('id')->isNotNull()->first();
+        $this->assertEquals('Noticias', $rs['name']);
+    }
+
+    public function testExists()
+    {
+        $subQ = function(Statement $st) {
+            return $st->get('author', ['id'])->filter('id', '=', 1);
+        };
+
+        $rs = $this->db->get('author')->exists($subQ)->first();
+        $this->assertEquals('Carlos Coutinho', $rs['name']);
+    }
+
+    public function testNotExists()
+    {
+        $subQ = function(Statement $st) {
+            return $st->get('author', ['id'])->filter('id', '=', 2);
+        };
+
+        $rs = $this->db->get('author')->notExists($subQ)->first();
+        $this->assertEmpty($rs);
+    }
+
+    public function testFilter_AND_Operator()
+    {
+        $rs = $this->db->get('article')->filter('id', '=', 1)->and('author_id', '=', 1)->first();
+        $this->assertNotEmpty($rs);
+
+        $rs = $this->db->get('article')->filter('id')
+        ->eqValue(1)
+        ->and('author_id')
+        ->eqValue(1)
+        ->first();
+        $this->assertNotEmpty($rs);
+    }
+
+    public function testFilter_OR_Operator()
+    {
+        $rs = $this->db->get('article')->filter('id', '=', 1)->or('author_id', '=', 1)->first();
+        $this->assertNotEmpty($rs);
+
+        $rs = $this->db->get('article')->filter('id')
+        ->eqValue(1)
+        ->or('author_id')
+        ->eqValue(1)
+        ->first();
+        $this->assertNotEmpty($rs);
+    }
+
+    public function testSubexpr()
+    {
+        $subExpr = function(Statement $st) {
+            return $st->filter('author_id', '=', 1)->or('category_id', '=', 2);
+        };
+
+        $rs = $this->db->get('article')->filter('id', '=', 1)->and($subExpr)->list();
+        $this->assertNotEmpty($rs);
+
+        //Outra forma usando o metodo subexpr
+        $subExpr = function(Statement $st) {
+            return $st->subexpr('author_id', '=', 1)->or('category_id', '=', 2);
+        };
+
+        $rs = $this->db->get('article')->filter('id', '=', 1)->and($subExpr)->list();
+        $this->assertNotEmpty($rs);
+
+        //Outra forma
+        $subExpr = function(Statement $st) {
+            return $st->subexpr('author_id')
+            ->eqValue(1)
+            ->or('category_id')
+            ->eqValue(2);
+        };
+
+        $rs = $this->db->get('article')->filter('id', '=', 1)->and($subExpr)->list();
+        $this->assertNotEmpty($rs);
+
+    }
+
     public function testFilterEqualsOperator()
     {
         $rs = $this->db->get('author')->filter('id', '=', 1)->first();
@@ -225,5 +313,71 @@ class QueryTest extends TestCase {
 
         $rs = $this->db->get('author')->filter('id', '=', $subQ)->first();
         $this->assertEquals('Carlos Coutinho', $rs['name']);
+
+        $rs = $this->db->get('author')->filter('id')->eqValue($subQ)->first();
+        $this->assertEquals('Carlos Coutinho', $rs['name']);
+    }
+
+    public function testFilterRelationalOperatorWithPlacesholders()
+    {
+        $rs = $this->db->get('author')->filter('id', '=', ':id')->first(['id' => 1]);
+        $this->assertEquals('Carlos Coutinho', $rs['name']);
+
+        $rs = $this->db->get('author')->filter('id')->eqValue(':id')->first(['id' => 1]);
+        $this->assertEquals('Carlos Coutinho', $rs['name']);
+    }
+
+    public function testFilterEqualsColumn()
+    {
+        $rs = $this->db->get('article')->filter('id', '=', '*category_id')->first();
+        $this->assertNotEmpty($rs);
+
+        $rs = $this->db->get('article')->filter('id')->eqColumn('category_id')->first();
+        $this->assertNotEmpty($rs);
+    }
+
+    public function testFilterNotEqualsColumn()
+    {
+        $rs = $this->db->get('article')->filter('id', '!=', '*category_id')->first();
+        $this->assertNotEmpty($rs);
+
+        $rs = $this->db->get('article')->filter('id')->neColumn('category_id')->first();
+        $this->assertNotEmpty($rs);
+    }
+
+    public function testFilterLessThanColumn()
+    {
+        $rs = $this->db->get('article')->filter('id', '<', '*category_id')->first();
+        $this->assertNotEmpty($rs);
+
+        $rs = $this->db->get('article')->filter('id')->ltColumn('category_id')->first();
+        $this->assertNotEmpty($rs);
+    }
+
+    public function testFilterGreaderThanColumn()
+    {
+        $rs = $this->db->get('article')->filter('id', '>', '*category_id')->first();
+        $this->assertNotEmpty($rs);
+
+        $rs = $this->db->get('article')->filter('id')->gtColumn('category_id')->first();
+        $this->assertNotEmpty($rs);
+    }
+
+    public function testFilterLessOrEqualsColumn()
+    {
+        $rs = $this->db->get('article')->filter('id', '<=', '*category_id')->first();
+        $this->assertNotEmpty($rs);
+
+        $rs = $this->db->get('article')->filter('id')->leColumn('category_id')->first();
+        $this->assertNotEmpty($rs);
+    }
+
+    public function testFilterGreaderOrEqualsColumn()
+    {
+        $rs = $this->db->get('article')->filter('id', '>=', '*category_id')->first();
+        $this->assertNotEmpty($rs);
+
+        $rs = $this->db->get('article')->filter('id')->geColumn('category_id')->first();
+        $this->assertNotEmpty($rs);
     }
 }

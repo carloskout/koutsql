@@ -103,6 +103,10 @@ class Util
      */
     public static function containsPlaceholders($value): bool
     {
+        if(!$value) {
+            return false;
+        }
+        
         $check = function (string $string): bool
         {
             if (
