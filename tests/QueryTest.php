@@ -380,4 +380,9 @@ class QueryTest extends TestCase {
         $rs = $this->db->get('article')->filter('id')->geColumn('category_id')->first();
         $this->assertNotEmpty($rs);
     }
+
+    public function testOffset()
+    {
+        
+    }
 }

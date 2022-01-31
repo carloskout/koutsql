@@ -37,14 +37,20 @@ class MYSQLStatement extends Statement {
 
     public function offset(int $value): Statement
     {
-        Util::push("LIMIT $value,", $this->orderByBuffer);
+        // se for especificado apenas o offset sem o fetch então será retornado
+        // um limite de apenas 1000 linhas a partir do offset especificado
+        Util::push("LIMIT 1000 OFFSET $value", $this->orderByBuffer);
         return $this;
     }
 
+    // a orderm de chamada => offset()->fetch()
     public function fetch(int $value): Statement
     {
-        if(Util::contains('LIMIT', $this->sql())) { //JA EXISTE O OFFSET
-            Util::push("$value", $this->orderByBuffer);
+        if(Util::contains('LIMIT 1000', $this->sql())) { //JA EXISTE O OFFSET
+            //Util::push("$value", $this->orderByBuffer);
+            $lastElem = $this->orderByBuffer[count($this->orderByBuffer) - 1];
+            $lastElem = str_replace('1000', $value, $lastElem);
+            $this->orderByBuffer[count($this->orderByBuffer) - 1] = $lastElem;
         } else {
             Util::push("LIMIT $value", $this->orderByBuffer);
         }
