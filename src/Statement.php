@@ -18,6 +18,9 @@ abstract class Statement {
      /** @var \PDO */
      protected $conn;
 
+     /**@var string */
+     protected $driver;
+
      /**
       * Buffer de Instruções SQL
       *
@@ -232,6 +235,16 @@ abstract class Statement {
         $this->colsBuffer = [];
         $this->valuesBuffer = [];
         $this->currentCol = '';
+    }
+
+    protected function setDriver(string $driver): void 
+    {
+        $this->driver = $driver;
+    }
+
+    public function getDriver(): string 
+    {
+        return $this->driver;
     }
 
 }

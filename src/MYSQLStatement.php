@@ -6,6 +6,7 @@ class MYSQLStatement extends Statement {
     public function __construct(\PDO $pdo = null)
     {
         parent::__construct($pdo);
+        $this->setDriver('mysql');
     }
 
     public function fullJoin(string $table, string $col1, string $col2): Statement
