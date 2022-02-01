@@ -90,7 +90,7 @@ trait RelationalOperator {
         } 
         // Senão É um valor literal
         else {
-            $col = $this->currentCol;
+            $col = Util::createRandomColumn();
             Util::push("$op :$col", $this->filterBuffer);
             Util::push([$col => $value], $this->dataBuffer);
         }

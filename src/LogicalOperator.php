@@ -179,7 +179,7 @@ trait LogicalOperator
         if (Util::containsPlaceholders($value)) {
             Util::push(["LIKE $value"], $this->filterBuffer);
         } else {
-            $col = $this->currentCol;
+            $col = Util::createRandomColumn();
             Util::push("LIKE :$col", $this->filterBuffer);
             if ($type == '^') { // starts with
                 Util::push([$col => $value . '%'], $this->dataBuffer);
@@ -301,7 +301,6 @@ trait LogicalOperator
 
         if (is_string($colOrSubexpression) && !empty($colOrSubexpression)) {
             Util::push("$colOrSubexpression", $this->filterBuffer);
-            $this->currentCol = $colOrSubexpression;
         } 
 
         if (!is_null($op) && !is_null($valueOrSubquery)) {

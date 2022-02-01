@@ -204,7 +204,6 @@ trait Query
         string $op = null,
         $value = null
     ): Statement {
-        $this->currentCol = $col;
         Util::push("HAVING $col", $this->filterBuffer);
 
         if (is_null($op) && is_null($value)) {

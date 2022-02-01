@@ -38,8 +38,6 @@ abstract class Statement {
     protected $colsBuffer = [];
     protected $valuesBuffer = [];
 
-    protected $currentCol;
-
     //------------------------
     protected $type;
     protected const SELECT = 1;
@@ -234,7 +232,6 @@ abstract class Statement {
         $this->joinBuffer = [];
         $this->colsBuffer = [];
         $this->valuesBuffer = [];
-        $this->currentCol = '';
     }
 
     protected function setDriver(string $driver): void 

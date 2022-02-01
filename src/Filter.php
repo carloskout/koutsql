@@ -21,7 +21,6 @@ trait Filter
         $value = null
     ): Statement {
         Util::push($col, $this->filterBuffer);
-        $this->currentCol = $col;
 
         if (is_null($op) && is_null($value)) {
             return $this;
@@ -91,7 +90,6 @@ trait Filter
         $valueOrSubquery = null
     ): Statement {
         Util::push($col, $this->filterBuffer);
-        $this->currentCol = $col;
         if (!is_null($op) && !is_null($valueOrSubquery)) {
             return $this->createExpr($op, $valueOrSubquery);
         }
