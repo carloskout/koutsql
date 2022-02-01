@@ -416,4 +416,22 @@ class QueryTest extends TestCase
             ->crossJoin('author')->list();
         $this->assertNotEmpty($rs);
     }
+
+    public function testGroupBy()
+    {
+        $rs = $this->db->get('article', ['category.name'])->count('*')
+        ->innerJoin('category', 'category.id', 'article.category_id')
+        ->groupBy('category.id')->list();
+
+        $this->assertNotEmpty($rs);
+    }
+
+    public function testGroupByHaving()
+    {
+        $rs = $this->db->get('article', ['category.name'])->count('*')
+        ->innerJoin('category', 'category.id', 'article.category_id')
+        ->groupBy('category.id')->having('category_id', '>', 1)->list();
+
+        $this->assertNotEmpty($rs);
+    }
 }
