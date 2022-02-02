@@ -252,9 +252,6 @@ trait Query
      */
     private function createSubquery($callback): string
     {
-        if (!is_callable($callback)) {
-            throw new \Exception("Callback ${callback} inválido.");
-        }
         $subquery = call_user_func($callback, new $this); // return Statement
         Util::push($subquery->dataBuffer, $this->dataBuffer);
         return trim($subquery->sql());
@@ -296,7 +293,7 @@ trait Query
         $union = "UNION ";
 
         if ($type) {
-            $union .= " $type";
+            $union .= "$type ";
         }
 
         Util::push($union . $this->createSubquery($callback), $this->unionBuffer);

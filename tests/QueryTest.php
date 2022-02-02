@@ -421,7 +421,7 @@ class QueryTest extends TestCase
     {
         $rs = $this->db->get('article', ['category.name'])->count('*')
         ->innerJoin('category', 'category.id', 'article.category_id')
-        ->groupBy('category.id')->list();
+        ->groupBy('category.name')->list();
 
         $this->assertNotEmpty($rs);
     }
@@ -430,8 +430,60 @@ class QueryTest extends TestCase
     {
         $rs = $this->db->get('article', ['category.name'])->count('*')
         ->innerJoin('category', 'category.id', 'article.category_id')
-        ->groupBy('category.id')->having('category_id', '>', 1)->list();
+        ->groupBy('category.name')->having('count(*)', '>', 1)->list();
+        $this->assertNotEmpty($rs);
 
+        $rs = $this->db->get('article', ['category.name'])->count('*')
+        ->innerJoin('category', 'category.id', 'article.category_id')
+        ->groupBy('category.name')->having('count(*)')
+        ->gtValue(1)
+        ->list();
+        $this->assertNotEmpty($rs);
+    }
+
+    public function testUnionAll()
+    {
+        $subQ = function(Statement $st) {
+            return $st->get('author')->rightJoin('article', 'author.id', 'article.author_id');
+        };
+
+        $rs = $this->db->get('author')
+        ->leftJoin('article', 'author.id', 'article.author_id')
+        ->unionAll($subQ)
+        ->list();
+
+        $this->assertNotEmpty($rs);
+    }
+
+    public function testUnionDistinct()
+    {
+        $subQ = function(Statement $st) {
+            return $st->get('author')->rightJoin('article', 'author.id', 'article.author_id');
+        };
+
+        $rs = $this->db->get('author')
+        ->leftJoin('article', 'author.id', 'article.author_id')
+        ->unionDistinct($subQ)
+        ->list();
+
+        $this->assertNotEmpty($rs);
+    }
+
+    public function testDistinct()
+    {
+        $rs = $this->db->get('article')->distinct('category_id')->list();
+        $this->assertNotEmpty($rs);
+    }
+
+    public function testNativeSQL()
+    {
+        $rs = $this->db->nativeSQL('select * from article');
+        $this->assertNotEmpty($rs);
+    }
+
+    public function testOrderColumns()
+    {
+        $rs = $this->db->get('article')->orderByAsc('title', 'published_at')->list();
         $this->assertNotEmpty($rs);
     }
 }
