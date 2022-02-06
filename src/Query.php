@@ -241,9 +241,10 @@ trait Query
      */
     private function createSubquery($callback): string
     {
-        $subquery = call_user_func($callback, new $this); // return Statement
-        Util::push($subquery->dataBuffer, $this->dataBuffer);
-        return trim($subquery->sql());
+        $newInstance = new $this;
+        call_user_func($callback, $newInstance); // return Statement
+        Util::push($newInstance->dataBuffer, $this->dataBuffer);
+        return trim($newInstance->sql());
     }
 
     /**
