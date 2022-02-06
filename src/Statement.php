@@ -181,7 +181,7 @@ abstract class Statement {
      * ou montada com Statement
      * @return PDOStatement
      */
-    private function exec(?array $data = null, bool $isNative = false): ?PDOStatement
+    protected function exec(?array $data = null, bool $isNative = false): ?PDOStatement
     {
         if (!empty($this->dataBuffer)) {
             $data = Util::prepareSQLInputData($this->dataBuffer);

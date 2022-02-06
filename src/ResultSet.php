@@ -58,7 +58,7 @@ trait ResultSet
      * @param array|null $data - Dados de entrada para execução da instrução SQL.
      * @return array|bool - Instancia de $className.
      */
-    public function toObjects(string $className = null, array $data = null)
+    public function toObjects(string $className = 'stdClass', array $data = null)
     {
         return $this->exec($data)->fetchAll(\PDO::FETCH_CLASS, $className);
     }
@@ -70,7 +70,7 @@ trait ResultSet
      * @param array|null $data - Dados de entrada para execução da instrução SQL.
      * @return object|bool - Instancia de $className.
      */
-    public function toObject(string $className = null, array $data = null)
+    public function toObject(string $className = 'stdClass', array $data = null)
     {
         return $this->exec($data)->fetchObject($className);
     }

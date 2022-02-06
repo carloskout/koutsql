@@ -42,4 +42,10 @@ class SQLServerDriverTest extends TestCase
             ->fullJoin('author', 'author.id', 'article.author_id')->list();
         $this->assertNotEmpty($rs);
     }
+
+    public function testLast()
+    {
+        $rs = $this->db->get('author', ['name'])->last();
+        $this->assertEquals('Caio Levi', $rs['name']);
+    }
 }

@@ -17,10 +17,6 @@ final class DB {
      */
     public static function getStatement(\PDO $pdo): Statement
     {
-        if(!$pdo) {
-            throw new \Exception('Objeto PDO não pode ser nulo');
-        }
-
         $drive = $pdo->getAttribute(\PDO::ATTR_DRIVER_NAME);
         switch($drive) {
             case 'mysql':

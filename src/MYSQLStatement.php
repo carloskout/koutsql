@@ -65,7 +65,12 @@ class MYSQLStatement extends Statement {
      */
     public function last(array $data = null): array 
     {
-        throw new \Exception('Não suportado');
+        $rs = $this->exec($data)->fetchAll(\PDO::FETCH_ASSOC);
+        if(!empty($rs)) {
+            return $rs[count($rs) - 1];
+        }
+
+        return [];
     }
     
 }

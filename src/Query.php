@@ -183,17 +183,6 @@ trait Query
     }
 
     /**
-     * Adiciona a cláusula 'union distinct (subquery)' à instrução SQL.
-     *
-     * @param callabe $callback - subquery
-     * @return Statement
-     */
-    public function unionDistinct($callback): Statement
-    {
-        return $this->addUnionClause($callback, 'DISTINCT');
-    }
-
-    /**
      * Adiciona a cláusula 'having' à instrução SQL.
      *
      * @param string $field

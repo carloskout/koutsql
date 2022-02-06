@@ -455,15 +455,14 @@ class QueryTest extends TestCase
         $this->assertNotEmpty($rs);
     }
 
-    public function testUnionDistinct()
+    public function testUnion()
     {
         $subQ = function(Statement $st) {
-            return $st->get('author')->rightJoin('article', 'author.id', 'article.author_id');
+            return $st->get('author');
         };
 
         $rs = $this->db->get('author')
-        ->leftJoin('article', 'author.id', 'article.author_id')
-        ->unionDistinct($subQ)
+        ->union($subQ)
         ->list();
 
         $this->assertNotEmpty($rs);
@@ -486,4 +485,73 @@ class QueryTest extends TestCase
         $rs = $this->db->get('article')->orderByAsc('title', 'published_at')->list();
         $this->assertNotEmpty($rs);
     }
+
+    public function testMin()
+    {
+        $rs = $this->db->get('article')->min('id')->singleResult();
+        $this->assertEquals(1, $rs);
+    }
+
+    public function testMax()
+    {
+        $rs = $this->db->get('article')->max('id')->singleResult();
+        $this->assertEquals(3, $rs);
+    }
+
+    public function testSum()
+    {
+        $rs = $this->db->get('article')->sum('id')->singleResult();
+        $this->assertEquals(6, $rs);
+    }
+
+    public function testAvg()
+    {
+        $rs = $this->db->get('article')->avg('id')->singleResult();
+        $this->assertEquals(2, $rs);
+    }
+
+    public function testCount()
+    {
+        $rs = $this->db->get('article')->count('id')->singleResult();
+        $this->assertEquals(3, $rs);
+    }
+
+    public function testFunctionNotImplemented()
+    {
+        $rs = $this->db->get('article')->concat('title', "' | '", 'published_at')->list();
+        $this->assertNotEmpty($rs);
+    }
+
+    public function testToObject()
+    {
+        $rs = $this->db->get('article')->toObject();
+        $this->assertInstanceOf('stdClass', $rs);
+    }
+
+    public function testToObjects()
+    {
+        $rs = $this->db->get('article')->toObjects();
+        $this->assertNotEmpty($rs);
+    }
+
+    public function testSingleResult()
+    {
+        $rs = $this->db->get('author', ['name'])->singleResult();
+        $this->assertEquals('Carlos Coutinho', $rs);
+    }
+
+    public function testSingleResultNull()
+    {
+        $rs = $this->db->get('author', ['name'])
+        ->filter('id', '=', 100)
+        ->singleResult();
+        $this->assertNull($rs);
+    }
+
+    public function testLazy()
+    {
+        $rs = $this->db->get('author', ['name'])->lazy();
+        $this->assertEquals('Carlos Coutinho', $rs->name);
+    }
+
 }

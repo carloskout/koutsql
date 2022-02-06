@@ -4,6 +4,7 @@ namespace Kout\Tests;
 
 use PHPUnit\Framework\TestCase;
 use Kout\DB;
+use Kout\Statement;
 
 class MYSQLDriverTest extends TestCase
 {
@@ -36,5 +37,11 @@ class MYSQLDriverTest extends TestCase
         $rs = $this->db->get('article')
             ->fullJoin('author', 'author.id', 'article.author_id')->list();
         $this->assertNotEmpty($rs);
+    }
+
+    public function testLast()
+    {
+        $rs = $this->db->get('author', ['name'])->last();
+        $this->assertEquals('Caio Levi', $rs['name']);
     }
 }
