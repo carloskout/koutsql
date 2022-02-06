@@ -71,6 +71,7 @@ trait AggregateFn {
     // definicao de metodos magicos para chamada de funcoes do banco de dados
     public function __call($name, $args)
     {
+        $name = Util::camelCaseConverter($name);
         return $this->addDBFunction($name, $args);
     }
 
