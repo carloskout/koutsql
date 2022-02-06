@@ -97,7 +97,7 @@ class QueryTest extends TestCase
     public function testFilter_IN_WithSubquery()
     {
         $subQ = function (Statement $st) {
-            return $st->get('category', ['id']);
+            $st->get('category', ['id']);
         };
 
         $rs = $this->db->get('author')->filter('id', '->', $subQ)->list();
@@ -180,7 +180,7 @@ class QueryTest extends TestCase
     public function testExists()
     {
         $subQ = function (Statement $st) {
-            return $st->get('author', ['id'])->filter('id', '=', 1);
+            $st->get('author', ['id'])->filter('id', '=', 1);
         };
 
         $rs = $this->db->get('author')->exists($subQ)->first();
@@ -190,7 +190,7 @@ class QueryTest extends TestCase
     public function testNotExists()
     {
         $subQ = function (Statement $st) {
-            return $st->get('author', ['id'])->filter('id', '=', 2);
+            $st->get('author', ['id'])->filter('id', '=', 2);
         };
 
         $rs = $this->db->get('author')->notExists($subQ)->first();
@@ -226,7 +226,7 @@ class QueryTest extends TestCase
     public function testSubexpr()
     {
         $subExpr = function (Statement $st) {
-            return $st->filter('author_id', '=', 1)->or('category_id', '=', 2);
+            $st->filter('author_id', '=', 1)->or('category_id', '=', 2);
         };
 
         $rs = $this->db->get('article')->filter('id', '=', 1)->and($subExpr)->list();
@@ -234,7 +234,7 @@ class QueryTest extends TestCase
 
         //Outra forma usando o metodo subexpr
         $subExpr = function (Statement $st) {
-            return $st->subexpr('author_id', '=', 1)->or('category_id', '=', 2);
+            $st->subexpr('author_id', '=', 1)->or('category_id', '=', 2);
         };
 
         $rs = $this->db->get('article')->filter('id', '=', 1)->and($subExpr)->list();
@@ -242,10 +242,10 @@ class QueryTest extends TestCase
 
         //Outra forma
         $subExpr = function (Statement $st) {
-            return $st->subexpr('author_id')
-                ->eqValue(1)
-                ->or('category_id')
-                ->eqValue(2);
+            $st->subexpr('author_id')
+            ->eqValue(1)
+            ->or('category_id')
+            ->eqValue(2);
         };
 
         $rs = $this->db->get('article')->filter('id', '=', 1)->and($subExpr)->list();
@@ -309,7 +309,7 @@ class QueryTest extends TestCase
     public function testFilterRelationalOperatorWithSubquery()
     {
         $subQ = function (Statement $st) {
-            return $st->get('author', ['id'])->filter('name', '^', 'Carlos');
+            $st->get('author', ['id'])->filter('name', '^', 'Carlos');
         };
 
         $rs = $this->db->get('author')->filter('id', '=', $subQ)->first();
@@ -444,7 +444,7 @@ class QueryTest extends TestCase
     public function testUnionAll()
     {
         $subQ = function(Statement $st) {
-            return $st->get('author')->rightJoin('article', 'author.id', 'article.author_id');
+            $st->get('author')->rightJoin('article', 'author.id', 'article.author_id');
         };
 
         $rs = $this->db->get('author')
@@ -458,7 +458,7 @@ class QueryTest extends TestCase
     public function testUnion()
     {
         $subQ = function(Statement $st) {
-            return $st->get('author');
+            $st->get('author');
         };
 
         $rs = $this->db->get('author')
