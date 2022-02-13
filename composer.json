@@ -1,6 +1,6 @@
 {
-    "name": "kout/datab",
-    "description": "DataB é uma library que facilita a criação e execução de instruções SQL.",
+    "name": "kout/koutsql",
+    "description": "KoutSQL é um projeto PHP que facilita a criação e execução de instruções SQL.",
     "require-dev": {
         "phpunit/phpunit": "^9.5"
     },

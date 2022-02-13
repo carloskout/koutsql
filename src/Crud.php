@@ -42,9 +42,6 @@ trait Crud
      * @param mixed $filter - Espera-se que seja passado uma lista de colunas,
      * um array ou um callable.
      * 
-     * Exemplo lista de colunas: $this->remove('users', 'id', 2). Espera-se somente dois 
-     * valores para a lista de colunas, um é nome da coluna e o outro é valor a ser comparado.
-     * 
      * Exemplo array: $this->remove('users', ['id', 3]). O array deverá possuir 
      * somente dois valores, ou seja, o nome da coluna e valor a ser comparado.
      * 
